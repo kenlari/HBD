@@ -1,5 +1,3 @@
-import { LoginPage } from "./components/LoginPage";
-import { BirthdayDashboard } from "./components/BirthdayDashboard";
 import React, { useState, useEffect } from "react";
 import { INITIAL_FRIENDS, ALL_ACHIEVEMENTS_LIST } from "./data";
 import { Friend, WishlistItem, Achievement, GiftSuggestion, InAppNotification } from "./types";
@@ -48,7 +46,8 @@ import {
   Volume2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-
+import { LoginPage } from "./components/LoginPage";
+import { BirthdayDashboard } from "./components/BirthdayDashboard";
 
 export default function App() {
   // --- AUTHENTICATED USER SESSION STATE ---
@@ -981,351 +980,36 @@ export default function App() {
   }, 0);
   const unlockLevel = (friends.find(f => f.id === 'alex')?.achievements.length || 0) * 2 + 1;
 
-  if (!userSession) {
+if (!userSession) {
+  const hasAccount = !!localStorage.getItem("birthday_authenticated_user");
+
+  // If user already registered before → show Login page
+  if (hasAccount && activeSection !== "signin") {
     return (
-      <div className="w-full min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden text-slate-100" id="auth-gate-root">
-        {/* Abstract decorative ambient glowing nodes */}
-        <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none animate-pulse" />
-        <div className="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] bg-teal-500/10 rounded-full blur-[120px] pointer-events-none" />
-
-        {/* Global Toast within login view too */}
-        <AnimatePresence>
-          {showToast && (
-            <motion.div
-              initial={{ opacity: 0, y: -45, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              className="fixed top-6 right-6 left-6 md:left-auto md:w-96 bg-slate-900 border border-slate-800 text-white rounded-2xl p-4 shadow-2xl z-50 flex items-start gap-3 text-left"
-            >
-              <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl">
-                <Sparkles className="w-5 h-5 animate-spin" />
-              </div>
-              <div className="flex-1">
-                <h5 className="font-bold text-xs text-indigo-400 uppercase tracking-widest">{toastTitle}</h5>
-                <p className="text-xs text-zinc-300 mt-1 leading-relaxed">{toastMessage}</p>
-              </div>
-              <button onClick={() => setShowToast(false)} className="text-zinc-500 hover:text-white transition-colors">
-                <X className="w-4 h-4" />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="max-w-3xl w-full z-10 space-y-6">
-          
-          {/* Header Branding */}
-          <motion.div
-            initial={{ opacity: 0, y: -15 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center space-y-2"
-          >
-            <span className="inline-flex w-12 h-12 bg-indigo-600 text-white rounded-2xl items-center justify-center text-2xl font-black shadow-xl shadow-indigo-600/35 mb-1 cursor-pointer">
-              B
-            </span>
-            <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
-              BloomBirth <span className="text-[10px] bg-indigo-500/20 text-indigo-400 font-extrabold tracking-widest uppercase px-2 py-0.5 rounded-full border border-indigo-500/30">Pro &amp; Sync</span>
-            </h1>
-            <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-              Connect your secure contact book to stream real-time birthday events, generate thoughtful wishlist targets using Gemini AI suggestions, and monitor alarms.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
-            {/* Form Column Code block */}
-            <motion.div
-              initial={{ opacity: 0, x: -15 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-3xl p-5 md:p-6 shadow-2xl space-y-4"
-            >
-              <div>
-                <h3 className="font-extrabold text-sm text-slate-100 flex items-center gap-2">
-                  <UserPlus className="w-4 h-4 text-indigo-400" />
-                  <span>Configure Custom Identity</span>
-                </h3>
-                <p className="text-[11px] text-zinc-400 mt-0.5">
-                  Establish custom handle parameters to customize the cockpit calendar representation.
-                </p>
-              </div>
-
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!signInName.trim() || !signInUsername.trim() || !signInEmail.trim() || !signInPhone.trim() || !signInWhatsApp.trim()) {
-                    triggerToast("Missing Fields ⚠️", "Provide full legal name, Snapchat handle, phone number, WhatsApp, and email.");
-                    return;
-                  }
-                  const sessionObj = {
-                    name: signInName.trim(),
-                    username: signInUsername.trim().replace(/^@/, ""),
-                    email: signInEmail.trim(),
-                    phone: signInPhone.trim(),
-                    whatsapp: signInWhatsApp.trim(),
-                    birthday: signInBirthday || "1997-06-25",
-                    avatar: signInAvatar || "bg-indigo-600",
-                    interests: signInInterests
-                  };
-                  localStorage.setItem("birthday_authenticated_user", JSON.stringify(sessionObj));
-                  setUserSession(sessionObj);
-                  triggerToast("Circle Synced 🎉", `Successfully initiated workspace for ${sessionObj.name}!`);
-                  appendLog(`🔐 Authenticated: Active user session established for @${sessionObj.username}.`);
-                }}
-                className="space-y-3.5 text-left"
-              >
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Full Legal Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={signInName}
-                    onChange={(e) => setSignInName(e.target.value)}
-                    placeholder="e.g. Alex Patel"
-                    className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 font-sans">Snapchat Handle</label>
-                    <input
-                      type="text"
-                      required
-                      value={signInUsername}
-                      onChange={(e) => setSignInUsername(e.target.value)}
-                      placeholder="e.g. alex_snap"
-                      className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Your Birthday</label>
-                    <input
-                      type="date"
-                      required
-                      value={signInBirthday}
-                      onChange={(e) => setSignInBirthday(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors cursor-pointer"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 font-sans">Phone Number</label>
-                    <input
-                      type="text"
-                      required
-                      value={signInPhone}
-                      onChange={(e) => setSignInPhone(e.target.value)}
-                      placeholder="e.g. +233241234567"
-                      className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 font-sans">WhatsApp Number</label>
-                    <input
-                      type="text"
-                      required
-                      value={signInWhatsApp}
-                      onChange={(e) => setSignInWhatsApp(e.target.value)}
-                      placeholder="e.g. +233241234567"
-                      className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 font-sans">Email Address</label>
-                    <input
-                      type="email"
-                      required
-                      value={signInEmail}
-                      onChange={(e) => setSignInEmail(e.target.value)}
-                      placeholder="e.g. alex@example.com"
-                      className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors font-mono"
-                    />
-                  </div>
-                </div>
-
-                {/* Avatar Palette Selection */}
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Favorite Avatar Accent</label>
-                  <div className="flex gap-2">
-                    {[
-                      { bg: "bg-teal-500", name: "Teal" },
-                      { bg: "bg-indigo-500", name: "Indigo" },
-                      { bg: "bg-amber-500", name: "Amber" },
-                      { bg: "bg-rose-500", name: "Rose" },
-                      { bg: "bg-emerald-500", name: "Emerald" },
-                      { bg: "bg-pink-500", name: "Plum" }
-                    ].map(pal => (
-                      <button
-                        key={pal.bg}
-                        type="button"
-                        onClick={() => setSignInAvatar(pal.bg)}
-                        className={`w-7 h-7 rounded-lg transition-transform hover:scale-110 flex items-center justify-center cursor-pointer relative ${pal.bg} ${
-                          signInAvatar === pal.bg ? "ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-105" : "opacity-75"
-                        }`}
-                        title={pal.name}
-                      >
-                        {signInAvatar === pal.bg && <Check className="w-3.5 h-3.5 text-white stroke-[3.5]" />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Dynamic Interests Choice Box */}
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Select Main Interest Niches</label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[
-                      "Photography", "Specialty Coffee", "Cyberpunk Novels", "Mechanic Keyboards",
-                      "Yoga & Zen", "Hiking & Trails", "Baking Cakes", "Guitar Instrumental", "Modern Design"
-                    ].map(tag => {
-                      const isChosen = signInInterests.includes(tag);
-                      return (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => {
-                            if (isChosen) {
-                              setSignInInterests(prev => prev.filter(t => t !== tag));
-                            } else {
-                              setSignInInterests(prev => [...prev, tag]);
-                            }
-                          }}
-                          className={`px-2 py-1.5 rounded-lg text-[9px] font-bold font-sans tracking-tight transition-colors cursor-pointer border ${
-                            isChosen 
-                              ? "bg-indigo-650/30 text-indigo-300 border-indigo-500" 
-                              : "bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200"
-                          }`}
-                        >
-                          {tag}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full text-center bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white py-3 rounded-2xl font-black text-xs transition-all shadow-xl shadow-indigo-600/25 tracking-wide cursor-pointer flex items-center justify-center gap-1"
-                >
-                  Confirm Registration &amp; Unlock Deck &rarr;
-                </button>
-              </form>
-            </motion.div>
-
-            {/* Quick Speedrun Presets (Span 5) */}
-            <motion.div
-              initial={{ opacity: 0, x: 15 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="lg:col-span-5 flex flex-col gap-4 text-left"
-            >
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-3.5">
-                <div>
-                  <h4 className="font-extrabold text-[13px] text-white flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
-                    <span>Quick Autofill Presets</span>
-                  </h4>
-                  <p className="text-[10px] text-slate-400 leading-normal mt-0.5">
-                    Skip custom inputs and speedrun directly with prepared benchmark personas.
-                  </p>
-                </div>
-
-                <div className="space-y-2.5">
-                  <button
-                    onClick={() => {
-                      setSignInName("Alex Patel");
-                      setSignInUsername("alex_snap");
-                      setSignInEmail("alex.patel@gmail.com");
-                      setSignInPhone("+233241234567");
-                      setSignInWhatsApp("+233241234567");
-                      setSignInBirthday("1997-06-25");
-                      setSignInAvatar("bg-teal-500");
-                      setSignInInterests(["Photography", "Specialty Coffee", "Cyberpunk Novels", "Mechanic Keyboards"]);
-                      triggerToast("Form Configured ✨", "Pre-loaded Alex Patel credentials. Click verify to enter.");
-                    }}
-                    className="w-full text-left p-3 rounded-2xl bg-slate-950/70 hover:bg-slate-950 border border-slate-800/80 hover:border-teal-500 transition-all cursor-pointer flex items-center justify-between group"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-7 h-7 rounded-lg bg-teal-500 text-white flex items-center justify-center font-bold text-xs shrink-0 font-mono">AP</span>
-                      <div>
-                        <span className="text-xs font-bold text-slate-100 block">Alex Patel (Recommended)</span>
-                        <span className="text-[9px] text-slate-450 block font-mono">@alex_snap • June 25 • Technology</span>
-                      </div>
-                    </div>
-                    <span className="text-[9px] text-teal-400 font-bold opacity-0 group-hover:opacity-100 transition-all mr-1">Load Preset &rarr;</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setSignInName("Sophia Jenkins");
-                      setSignInUsername("baking_sophia_snap");
-                      setSignInEmail("sophia.bakes.coffee@icloud.com");
-                      setSignInPhone("+233245556666");
-                      setSignInWhatsApp("+233245556666");
-                      setSignInBirthday("1995-10-14");
-                      setSignInAvatar("bg-pink-500");
-                      setSignInInterests(["Baking Cakes", "Specialty Coffee", "Modern Design", "Yoga & Zen"]);
-                      triggerToast("Form Configured ✨", "Pre-loaded Sophia Jenkins credentials. Click verify to enter.");
-                    }}
-                    className="w-full text-left p-3 rounded-2xl bg-slate-950/70 hover:bg-slate-950 border border-slate-800/80 hover:border-pink-500 transition-all cursor-pointer flex items-center justify-between group"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-7 h-7 rounded-lg bg-pink-500 text-white flex items-center justify-center font-bold text-xs shrink-0 font-mono">SJ</span>
-                      <div>
-                        <span className="text-xs font-bold text-slate-100 block">Sophia Jenkins</span>
-                        <span className="text-[9px] text-slate-450 block font-mono">@baking_sophia_snap • Oct 14 • Culinary arts</span>
-                      </div>
-                    </div>
-                    <span className="text-[9px] text-pink-400 font-bold opacity-0 group-hover:opacity-100 transition-all mr-1">Load Preset &rarr;</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setSignInName("Marcus Vance");
-                      setSignInUsername("marcus_snap");
-                      setSignInEmail("marcus.vance88@gmail.com");
-                      setSignInPhone("+233209876543");
-                      setSignInWhatsApp("+233209876543");
-                      setSignInBirthday("1998-04-02");
-                      setSignInAvatar("bg-amber-500");
-                      setSignInInterests(["Hiking & Trails", "Photography", "Guitar Instrumental", "Cyberpunk Novels"]);
-                      triggerToast("Form Configured ✨", "Pre-loaded Marcus Vance credentials. Click verify to enter.");
-                    }}
-                    className="w-full text-left p-3 rounded-2xl bg-slate-950/70 hover:bg-slate-950 border border-slate-800/80 hover:border-amber-500 transition-all cursor-pointer flex items-center justify-between group"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-xs shrink-0 font-mono">MV</span>
-                      <div>
-                        <span className="text-xs font-bold text-slate-100 block">Marcus Vance</span>
-                        <span className="text-[9px] text-slate-450 block font-mono">@marcus_snap • Apr 2 • Adventure sports</span>
-                      </div>
-                    </div>
-                    <span className="text-[9px] text-amber-400 font-bold opacity-0 group-hover:opacity-100 transition-all mr-1">Load Preset &rarr;</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Secure Handshake Trust Panel */}
-              <div className="bg-slate-900/50 border border-slate-850 p-4 rounded-3xl space-y-1 my-1 flex gap-3 text-left">
-                <span className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl block shrink-0 h-fit">
-                  <Clock className="w-4 h-4 text-emerald-400" />
-                </span>
-                <div>
-                  <h5 className="font-extrabold text-xs text-slate-200">Local Isolation Active</h5>
-                  <p className="text-[10px] text-slate-400 leading-relaxed">
-                    BloomBirth respects client-side sandboxes. Your authenticated identity metadata remains entirely sandboxed inside your local browser cookie storage.
-                  </p>
-                </div>
-              </div>
-
-            </motion.div>
-
-          </div>
-
-        </div>
-      </div>
+      <LoginPage
+        onLogin={(session) => {
+          setUserSession(session);
+          setActiveSection("dashboard");
+          appendLog(`🔐 Logged in: ${session.name}`);
+        }}
+        onGoToSignUp={() => setActiveSection("signin")}
+        triggerToast={triggerToast}
+      />
     );
   }
+
+  // First-time user → show the existing registration form below
+  return (
+    <div className="w-full min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden text-slate-100" id="auth-gate-root">
+
+      {/* === PASTE YOUR EXISTING REGISTRATION FORM JSX HERE === */}
+      {/* This is everything from line 985 to 1325 in your original file */}
+      {/* (the toast, the branding header, the form card, the presets panel) */}
+
+    </div>
+  );
+}
+
 
   return (
     <div className="w-full min-h-screen bg-[#F1F5F9] flex flex-col md:flex-row font-sans text-slate-800" id="bloom-app-root">
@@ -2175,6 +1859,24 @@ export default function App() {
                   </button>
                 </div>
               </div>
+              {/* ==================== BIRTHDAY FEED ==================== */}
+<BirthdayDashboard
+  friends={friends}
+  userName={userSession?.name || "Friend"}
+  onViewFriend={(id) => {
+    setSelectedFriendId(id);
+    setActiveSection("registry");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }}
+  onOpenGiftAI={(id) => {
+    setSelectedFriendId(id);
+    setActiveSection("ai-lab");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }}
+/>
+
+{/* ==================== UNIVERSAL SEARCH & DISCOVERY CENTER ==================== */}
+
 
               {/* ==================== UNIVERSAL SEARCH & DISCOVERY CENTER ==================== */}
               <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs text-left space-y-4" id="dashboard-discovery-deck">
