@@ -1,3 +1,5 @@
+import { LoginPage } from "./components/LoginPage";
+import { BirthdayDashboard } from "./components/BirthdayDashboard";
 import React, { useState, useEffect } from "react";
 import { INITIAL_FRIENDS, ALL_ACHIEVEMENTS_LIST } from "./data";
 import { Friend, WishlistItem, Achievement, GiftSuggestion, InAppNotification } from "./types";
