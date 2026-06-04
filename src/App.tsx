@@ -1,0 +1,5028 @@
+import React, { useState, useEffect } from "react";
+import { INITIAL_FRIENDS, ALL_ACHIEVEMENTS_LIST } from "./data";
+import { Friend, WishlistItem, Achievement, GiftSuggestion, InAppNotification } from "./types";
+import { WidgetSimulator } from "./components/WidgetSimulator";
+import { MOCK_EXTERNAL_PROFILES, MockProfile } from "./mockProfiles";
+import { 
+  Gift, 
+  Calendar, 
+  Sparkles, 
+  Plus, 
+  Trash, 
+  Check, 
+  ExternalLink, 
+  Share2, 
+  Heart, 
+  Smile, 
+  Clock, 
+  Smartphone, 
+  X, 
+  Wand2, 
+  Edit3, 
+  AlertCircle, 
+  UserPlus, 
+  CheckCircle2, 
+  Info,
+  GiftIcon,
+  Cake,
+  Bookmark,
+  Award,
+  Users,
+  Home,
+  Activity,
+  Search,
+  CheckCheck,
+  User,
+  Sliders,
+  ChevronRight,
+  ChevronLeft,
+  Settings,
+  Bell,
+  Phone,
+  Mail,
+  MessageSquare,
+  CheckCircle,
+  HelpCircle,
+  Volume2
+} from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+
+
+export default function App() {
+  // --- AUTHENTICATED USER SESSION STATE ---
+  const [userSession, setUserSession] = useState<{
+    name: string;
+    username: string;
+    email: string;
+    birthday: string;
+    avatar: string;
+    interests: string[];
+  } | null>(() => {
+    const saved = localStorage.getItem("birthday_authenticated_user");
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  // Dynamic search input inside the Dashboard Executive Deck to discover others
+  const [dashboardSearchQuery, setDashboardSearchQuery] = useState<string>("");
+
+  // Friends list loaded from local storage or defaults
+  const [friends, setFriends] = useState<Friend[]>(() => {
+    const saved = localStorage.getItem("birthday_friends_list");
+    return saved ? JSON.parse(saved) : INITIAL_FRIENDS;
+  });
+
+  // Dynamic update of "alex" self-profile based on custom session
+  useEffect(() => {
+    if (userSession) {
+      setFriends(prev => {
+        const hasAlex = prev.find(f => f.id === "alex");
+        if (!hasAlex) return prev;
+        return prev.map(f => {
+          if (f.id === "alex") {
+            return {
+              ...f,
+              name: `${userSession.name} (You)`,
+              birthday: userSession.birthday,
+              avatar: userSession.avatar,
+              interests: userSession.interests
+            };
+          }
+          return f;
+        });
+      });
+    } else {
+      // Revert to Alex Patel representation if log out occurs
+      setFriends(prev => {
+        return prev.map(f => {
+          if (f.id === "alex") {
+            return {
+              ...f,
+              name: "Alex Patel (You)",
+              birthday: "1997-06-25",
+              avatar: "bg-teal-500",
+              interests: ["Photography", "Specialty Coffee", "Cyberpunk Novels", "Mechanic Keyboards"]
+            };
+          }
+          return f;
+        });
+      });
+    }
+  }, [userSession]);
+
+  // --- SIGN IN FORM STATE CONTROLLERS ---
+  const [signInName, setSignInName] = useState<string>("");
+  const [signInUsername, setSignInUsername] = useState<string>(() => {
+    const saved = localStorage.getItem("birthday_authenticated_user");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.username || "";
+      } catch (e) {
+        return "";
+      }
+    }
+    return "";
+  });
+  const [signInEmail, setSignInEmail] = useState<string>(() => {
+    const saved = localStorage.getItem("birthday_authenticated_user");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.email || "";
+      } catch (e) {
+        return "";
+      }
+    }
+    return "";
+  });
+  const [signInPhone, setSignInPhone] = useState<string>(() => {
+    const saved = localStorage.getItem("birthday_authenticated_user");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.phone || "+233241234567";
+      } catch (e) {
+        return "+233241234567";
+      }
+    }
+    return "+233241234567";
+  });
+  const [signInWhatsApp, setSignInWhatsApp] = useState<string>(() => {
+    const saved = localStorage.getItem("birthday_authenticated_user");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.whatsapp || "+233241234567";
+      } catch (e) {
+        return "+233241234567";
+      }
+    }
+    return "+233241234567";
+  });
+  const [signInBirthday, setSignInBirthday] = useState<string>("1997-06-25");
+  const [signInAvatar, setSignInAvatar] = useState<string>("bg-indigo-600");
+  const [signInInterests, setSignInInterests] = useState<string[]>(["Photography", "Specialty Coffee"]);
+
+  // Track the active interactive workspace section
+  const [activeSection, setActiveSection] = useState<
+    "dashboard" | "registry" | "ai-lab" | "my-wishlist" | "widgets" | "achievements" | "signin" | "upgrade"
+  >("dashboard");
+
+  // Local state for the search bar inside the integrated Sign In Page
+  const [signinSearchQuery, setSigninSearchQuery] = useState<string>("");
+
+  // --- MONTHLY CALENDAR VIEW STATE ---
+  const [calendarYear, setCalendarYear] = useState<number>(2026);
+  const [calendarMonth, setCalendarMonth] = useState<number>(5); // 0-indexed, so 5 = June (today's month)
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<{ day: number; month: number; year: number }>({ day: 3, month: 5, year: 2026 });
+
+  // Selected friend in registry/AI picker
+  const [selectedFriendId, setSelectedFriendId] = useState<string>("taylor");
+
+  // --- PREMIUM & FREEMIUM SYSTEM STATE VARIABLES ---
+  const [accountType, setAccountType] = useState<"Free" | "Pro" | "Business">(() => {
+    const saved = localStorage.getItem("birthday_authenticated_user");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.accountType || "Free";
+      } catch (e) {
+        return "Free";
+      }
+    }
+    return "Free";
+  });
+
+  const [snapchatUsername, setSnapchatUsername] = useState<string>(() => {
+    const saved = localStorage.getItem("birthday_authenticated_user");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.snapchatUsername || "alex_snap";
+      } catch (e) {
+        return "alex_snap";
+      }
+    }
+    return "alex_snap";
+  });
+
+  const [whatsappNumber, setWhatsappNumber] = useState<string>(() => {
+    const saved = localStorage.getItem("birthday_authenticated_user");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.whatsappNumber || "+233241234567";
+      } catch (e) {
+        return "+233241234567";
+      }
+    }
+    return "+233241234567";
+  });
+
+  const [enableEmailReminders, setEnableEmailReminders] = useState<boolean>(() => {
+    const saved = localStorage.getItem("birthday_authenticated_user");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.enableEmailReminders !== false; // default true
+      } catch (e) {
+        return true;
+      }
+    }
+    return true;
+  });
+
+  // Modal Dialog flags
+  const [showUpgradePromptModal, setShowUpgradePromptModal] = useState<boolean>(false);
+  const [showSendGiftModal, setShowSendGiftModal] = useState<boolean>(false);
+  const [selectedGiftItem, setSelectedGiftItem] = useState<{
+    friendId: string;
+    wishId: string;
+    title: string;
+    price: string;
+    friendName: string;
+  } | null>(null);
+
+  // Bulk import textarea state
+  const [bulkImportText, setBulkImportText] = useState<string>("");
+
+  // Sub-states for adding or editing phone/snapchat handles for companions
+  const [newFriendPhone, setNewFriendPhone] = useState<string>("");
+  const [newFriendWhatsApp, setNewFriendWhatsApp] = useState<string>("");
+  const [newFriendEmail, setNewFriendEmail] = useState<string>("");
+  const [newFriendSnapchat, setNewFriendSnapchat] = useState<string>("");
+  const [editFriendPhone, setEditFriendPhone] = useState<string>("");
+  const [editFriendWhatsApp, setEditFriendWhatsApp] = useState<string>("");
+  const [editFriendEmail, setEditFriendEmail] = useState<string>("");
+  const [editFriendSnapchat, setEditFriendSnapchat] = useState<string>("");
+
+  // Custom activity log feed state to show live interactive operation records
+  const [logs, setLogs] = useState<string[]>(() => {
+    const saved = localStorage.getItem("birthday_activity_logs");
+    return saved ? JSON.parse(saved) : [
+      "[10:42 AM] Connected to BloomBirth cloud system workspace.",
+      "[11:15 AM] Jamie Chen's birthday wishlist updated with Matcha Bowl.",
+      "[02:30 PM] Synchronized widget coordinates with iOS lock screen complication.",
+      "[04:12 PM] Riley Cooper's birthday profile synchronized. Sourdough added."
+    ];
+  });
+
+  // Helper code to format system log actions
+  const appendLog = (actionMsg: string) => {
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const formatted = `[${timeStr}] ${actionMsg}`;
+    setLogs(prev => {
+      const next = [formatted, ...prev].slice(0, 50); // limit to 50 logs
+      localStorage.setItem("birthday_activity_logs", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // AI custom suggestion panel properties
+  const [aiBudget, setAiBudget] = useState<string>("under $50");
+  const [aiRelationship, setAiRelationship] = useState<string>("Best Friend");
+  const [aiAge, setAiAge] = useState<string>("28");
+  const [customInterest, setCustomInterest] = useState<string>("");
+
+  // AI suggestions result list
+  const [aiSuggestions, setAiSuggestions] = useState<GiftSuggestion[]>([]);
+  const [isLoadingAi, setIsLoadingAi] = useState<boolean>(false);
+  const [aiNote, setAiNote] = useState<string>("");
+
+  // Manage custom friend profile editing on the spot (Registry Mode)
+  const [isEditingFriend, setIsEditingFriend] = useState<boolean>(false);
+  const [editFriendName, setEditFriendName] = useState<string>("");
+  const [editFriendBirthday, setEditFriendBirthday] = useState<string>("");
+  const [editFriendRelationship, setEditFriendRelationship] = useState<string>("Best Friend");
+  const [editFriendAge, setEditFriendAge] = useState<string>("25");
+  const [editFriendAvatar, setEditFriendAvatar] = useState<string>("bg-indigo-500");
+
+  // Creating a new wish states
+  const [newItemTitle, setNewItemTitle] = useState<string>("");
+  const [newItemPrice, setNewItemPrice] = useState<string>("");
+  const [newItemUrl, setNewItemUrl] = useState<string>("");
+  const [isAddingWish, setIsAddingWish] = useState<boolean>(false);
+
+  // States for editing a specific wishlist item in selected buddy profile
+  const [editingWishId, setEditingWishId] = useState<string | null>(null);
+  const [editingWishTitle, setEditingWishTitle] = useState<string>("");
+  const [editingWishPrice, setEditingWishPrice] = useState<string>("");
+  const [editingWishUrl, setEditingWishUrl] = useState<string>("");
+
+  // Registering a new Buddy profile dialog modal state
+  const [showAddProfile, setShowAddProfile] = useState<boolean>(false);
+  const [newFriendName, setNewFriendName] = useState<string>("");
+  const [newFriendBirthday, setNewFriendBirthday] = useState<string>("");
+  const [newFriendRelationship, setNewFriendRelationship] = useState<string>("Best Friend");
+  const [newFriendAge, setNewFriendAge] = useState<string>("25");
+  const [newFriendInterestsText, setNewFriendInterestsText] = useState<string>("");
+
+  // Global search and relationship type filtering states (Registry panel)
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [filterRelationship, setFilterRelationship] = useState<string>("All");
+
+  // System custom alert toast state
+  const [showToast, setShowToast] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string>("");
+  const [toastTitle, setToastTitle] = useState<string>("");
+
+  const triggerToast = (title: string, msg: string) => {
+    setToastTitle(title);
+    setToastMessage(msg);
+    setShowToast(true);
+  };
+
+  // --- CONNECT & IMPORT WORKSPACE STATES ---
+  const [registrySubTab, setRegistrySubTab] = useState<"list" | "connect">("list");
+  const [connectMethod, setConnectMethod] = useState<"contacts" | "username">("contacts");
+  const [usernameSearch, setUsernameSearch] = useState<string>("");
+  const [showRelationModal, setShowRelationModal] = useState<boolean>(false);
+  const [pendingConnectProfile, setPendingConnectProfile] = useState<MockProfile | null>(null);
+
+  // Posted status map
+  const [postedLists, setPostedLists] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem("birthday_posted_wishlists");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // Track ticking live timers
+  const [pendingPostingTimers, setPendingPostingTimers] = useState<Record<string, number>>({});
+
+  // Notification lists state
+  const [notifications, setNotifications] = useState<InAppNotification[]>(() => {
+    const saved = localStorage.getItem("birthday_in_app_notifications");
+    return saved ? JSON.parse(saved) : [
+      {
+        id: "sys-welcome",
+        type: "system",
+        title: "BloomBirth Sync Status",
+        message: "Your address book and username listener is initialized and streaming in real-time.",
+        timestamp: "Active",
+        isRead: false
+      }
+    ];
+  });
+  const [showNotificationDrawer, setShowNotificationDrawer] = useState<boolean>(false);
+
+  // Sync notifications to local storage
+  useEffect(() => {
+    localStorage.setItem("birthday_in_app_notifications", JSON.stringify(notifications));
+  }, [notifications]);
+
+  // Sync posted lists status map
+  useEffect(() => {
+    localStorage.setItem("birthday_posted_wishlists", JSON.stringify(postedLists));
+  }, [postedLists]);
+
+
+  useEffect(() => {
+    if (showToast) {
+      const timer = setTimeout(() => setShowToast(false), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [showToast]);
+
+  // Persist buddy data on edit update
+  useEffect(() => {
+    localStorage.setItem("birthday_friends_list", JSON.stringify(friends));
+  }, [friends]);
+
+  const selectedFriend = friends.find((f) => f.id === selectedFriendId) || friends[1] || friends[0];
+
+  // Current system mock benchmark clock date: Wednesday June 3, 2026
+  const today = new Date("2026-06-03");
+
+  // Helper logic: calculating days remaining until next birthday relative to June 3, 2026
+  const calculateDaysRemaining = (birthdayStr: string) => {
+    const birthDate = new Date(birthdayStr);
+    const birthMonth = birthDate.getMonth();
+    const birthDay = birthDate.getDate();
+
+    let nextBirthday = new Date(today.getFullYear(), birthMonth, birthDay);
+    if (nextBirthday < today) {
+      nextBirthday.setFullYear(today.getFullYear() + 1);
+    }
+
+    const diffTime = nextBirthday.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  // Nice readable birthday label
+  const formatBirthdayDate = (birthdayStr: string) => {
+    const date = new Date(birthdayStr);
+    return date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+  };
+
+  // Extract all companions with active birthdays matching a specific 0-indexed month and day
+  const getCelebrants = (monthIdx: number, dayNum: number) => {
+    return friends.filter(f => {
+      if (!f.birthday) return false;
+      const dateParts = f.birthday.split("-");
+      if (dateParts.length < 3) return false;
+      const bMonth = parseInt(dateParts[1], 10) - 1; // 0-indexed month
+      const bDay = parseInt(dateParts[2], 10);
+      return bMonth === monthIdx && bDay === dayNum;
+    });
+  };
+
+  const getUpcomingSorted = () => {
+    return [...friends].sort((a, b) => {
+      return calculateDaysRemaining(a.birthday) - calculateDaysRemaining(b.birthday);
+    });
+  };
+
+  // Synchronize AI Form attributes whenever user selects a companion
+  useEffect(() => {
+    if (selectedFriend) {
+      setAiAge(selectedFriend.age);
+      setAiRelationship(selectedFriend.relationship === "Self" ? "Best Friend" : selectedFriend.relationship);
+      setAiSuggestions([]);
+      setEditingWishId(null);
+      
+      // Sync editing form defaults
+      setEditFriendName(selectedFriend.name);
+      setEditFriendBirthday(selectedFriend.birthday);
+      setEditFriendRelationship(selectedFriend.relationship);
+      setEditFriendAge(selectedFriend.age);
+      setEditFriendAvatar(selectedFriend.avatar);
+      setEditFriendPhone(selectedFriend.phone || "+233241234567");
+      setEditFriendWhatsApp(selectedFriend.whatsapp || "+233241234567");
+      setEditFriendEmail(selectedFriend.email || "friend@example.com");
+      setEditFriendSnapchat(selectedFriend.snapchat || "friend_snap");
+      setIsEditingFriend(false);
+    }
+  }, [selectedFriendId]);
+
+  // Handle Personalized Gemini Suggestions from backend
+  const handleGetGiftSuggestions = async () => {
+    setIsLoadingAi(true);
+    try {
+      const response = await fetch("/api/gift-suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          interests: selectedFriend.interests,
+          relationship: aiRelationship,
+          age: aiAge,
+          budget: aiBudget
+        })
+      });
+      const data = await response.json();
+      setAiSuggestions(data.suggestions || []);
+      setAiNote(data.note || "");
+      
+      unlockAchievement("Gemini Genie", "alex");
+      appendLog(`Generated Gemini gift catalog for ${selectedFriend.name} using tags: [${selectedFriend.interests.join(", ")}].`);
+      triggerToast(
+        "AI suggestions ready ✨", 
+        `Custom matching gifts generated for ${selectedFriend.name}.`
+      );
+    } catch (e) {
+      console.error(e);
+      triggerToast("Service Warning", "Offline generator called. Using stored local matches.");
+    } finally {
+      setIsLoadingAi(false);
+    }
+  };
+
+  // Unlock Milestone Achievements
+  const unlockAchievement = (title: string, targetId: string = "alex") => {
+    const updated = friends.map((f) => {
+      if (f.id === targetId) {
+        const alreadyHas = f.achievements.some((a) => a.title === title);
+        if (alreadyHas) return f;
+
+        const preset = ALL_ACHIEVEMENTS_LIST.find((item) => item.title === title);
+        const newAch: Achievement = {
+          id: `ach-unlocked-${Date.now()}`,
+          title: title,
+          description: preset?.description || "Completed landmark milestone",
+          iconName: preset?.iconName || "Sparkles",
+          dateAwarded: "2026-06-03"
+        };
+        appendLog(`🥇 Unlocked achievement: "${title}"!`);
+        return {
+          ...f,
+          achievements: [...f.achievements, newAch]
+        };
+      }
+      return f;
+    });
+    setFriends(updated);
+  };
+
+  // Claiming / unclaiming wishlist items
+  const toggleClaimWishlistItem = (friendId: string, wishId: string) => {
+    const updated = friends.map((friend) => {
+      if (friend.id === friendId) {
+        const updatedWishlist = friend.wishlist.map((wish) => {
+          if (wish.id === wishId) {
+            const currentlyClaimed = wish.isClaimed;
+            return {
+              ...wish,
+              isClaimed: !currentlyClaimed,
+              claimedBy: currentlyClaimed ? undefined : "Alex Patel (You)"
+            };
+          }
+          return wish;
+        });
+        return { ...friend, wishlist: updatedWishlist };
+      }
+      return friend;
+    });
+    setFriends(updated);
+
+    const fProfile = updated.find(f => f.id === friendId);
+    if (fProfile) {
+      const wish = fProfile.wishlist.find((w) => w.id === wishId);
+      if (wish) {
+        const stateMsg = wish.isClaimed ? "claimed" : "unclaimed";
+        appendLog(`${stateMsg === "claimed" ? "🎁 Claimed" : "🔓 Released"} "${wish.title}" from ${fProfile.name}'s registry.`);
+        triggerToast(
+          `${wish.title}`,
+          `Item marked as ${stateMsg}. Other synced friends can see this update on their lockers.`
+        );
+
+        if (wish.isClaimed) {
+          unlockAchievement("Generous Giver", "alex");
+        }
+      }
+    }
+  };
+
+  // Add custom wish to companion's wishlist
+  const addWishlistItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newItemTitle.trim()) return;
+
+    const newWish: WishlistItem = {
+      id: `wish-${Date.now()}`,
+      title: newItemTitle,
+      price: newItemPrice || "N/A",
+      url: newItemUrl || "",
+      isClaimed: false
+    };
+
+    const updated = friends.map((f) => {
+      if (f.id === selectedFriendId) {
+        return { ...f, wishlist: [...f.wishlist, newWish] };
+      }
+      return f;
+    });
+
+    setFriends(updated);
+    appendLog(`Added item "${newItemTitle}" to ${selectedFriend.name}'s desires directory.`);
+    setNewItemTitle("");
+    setNewItemPrice("");
+    setNewItemUrl("");
+    setIsAddingWish(false);
+    triggerToast("Desire Saved", `Added to ${selectedFriend.name}'s wishlist folder.`);
+
+    const selfUser = updated.find((f) => f.id === "alex");
+    if (selfUser && selfUser.wishlist.length >= 3) {
+      unlockAchievement("Perfect Wishlist", "alex");
+    }
+  };
+
+  // Edit existing wishlist item
+  const saveEditedWishlistItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingWishTitle.trim()) return;
+
+    const updated = friends.map((f) => {
+      if (f.id === selectedFriendId) {
+        const updatedWishlist = f.wishlist.map((wish) => {
+          if (wish.id === editingWishId) {
+            return {
+              ...wish,
+              title: editingWishTitle,
+              price: editingWishPrice || "N/A",
+              url: editingWishUrl
+            };
+          }
+          return wish;
+        });
+        return { ...f, wishlist: updatedWishlist };
+      }
+      return f;
+    });
+
+    setFriends(updated);
+    appendLog(`Updated wishlist item parameters for "${editingWishTitle}".`);
+    setEditingWishId(null);
+    triggerToast("Item Modified", "Saved updated values cleanly.");
+  };
+
+  const startEditingWishlistItem = (wish: WishlistItem) => {
+    setEditingWishId(wish.id);
+    setEditingWishTitle(wish.title);
+    setEditingWishPrice(wish.price);
+    setEditingWishUrl(wish.url);
+  };
+
+  const deleteWishlistItem = (wishId: string) => {
+    const friendTarget = friends.find(f => f.id === selectedFriendId);
+    const itemTarget = friendTarget?.wishlist.find(w => w.id === wishId);
+    
+    const updated = friends.map((f) => {
+      if (f.id === selectedFriendId) {
+        return {
+          ...f,
+          wishlist: f.wishlist.filter((w) => w.id !== wishId)
+        };
+      }
+      return f;
+    });
+    setFriends(updated);
+    appendLog(`Deleted item "${itemTarget?.title || 'Wish'}" from ${selectedFriend.name}'s registry.`);
+    triggerToast("Item Deleted", "Removed item representation.");
+  };
+
+  // Edit Friend Profile details (CRM Registry mode)
+  const handleSaveFriendProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editFriendName.trim() || !editFriendBirthday) {
+      triggerToast("Missing Fields", "Ensure you provide a name and birthday");
+      return;
+    }
+
+    const updated = friends.map((f) => {
+      if (f.id === selectedFriendId) {
+        return {
+          ...f,
+          name: editFriendName,
+          birthday: editFriendBirthday,
+          relationship: editFriendRelationship,
+          age: editFriendAge || "25",
+          avatar: editFriendAvatar,
+          phone: editFriendPhone,
+          whatsapp: editFriendWhatsApp,
+          email: editFriendEmail,
+          snapchat: editFriendSnapchat
+        };
+      }
+      return f;
+    });
+
+    setFriends(updated);
+    setIsEditingFriend(false);
+    appendLog(`Updated companion profile details for ${editFriendName}`);
+    triggerToast("Profile Saved", `${editFriendName}'s configuration has been saved.`);
+  };
+
+  // --- CONNECT INTERACTIVE SYSTEM HANDLERS ---
+  const handleImportInitiate = (profile: MockProfile) => {
+    // Check if duplicate Name exists to guard roster integrity
+    if (friends.some((f) => f.id === profile.id || f.name.toLowerCase() === profile.name.toLowerCase())) {
+      triggerToast("Already Synchronized 🤝", `${profile.name} has already been registered to your Circle roster.`);
+      return;
+    }
+    setPendingConnectProfile(profile);
+    setShowRelationModal(true);
+  };
+
+  const handlePostWishlistAutomatically = (friendId: string) => {
+    const mockProf = MOCK_EXTERNAL_PROFILES.find(p => p.id === friendId);
+    if (!mockProf) return;
+
+    setFriends(prev => {
+      const alreadyHas = prev.find(f => f.id === friendId);
+      if (!alreadyHas) return prev;
+      return prev.map(f => {
+        if (f.id === friendId) {
+          return {
+            ...f,
+            wishlist: mockProf.wishlistToPost
+          };
+        }
+        return f;
+      });
+    });
+
+    setPostedLists(prev => {
+      const next = { ...prev, [friendId]: true };
+      localStorage.setItem("birthday_posted_wishlists", JSON.stringify(next));
+      return next;
+    });
+
+    // Award achievement on first import post!
+    unlockAchievement("Early Bird Reminded", "alex");
+
+    const newNotif: InAppNotification = {
+      id: `notif-${Date.now()}`,
+      type: "birthday_list_posted",
+      title: "🎁 Birthday Wishlist Posted!",
+      message: `${mockProf.name} just published their wishlist. Check out their premium desires and secure slot!`,
+      friendId: friendId,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isRead: false
+    };
+
+    setNotifications(prev => {
+      const next = [newNotif, ...prev];
+      localStorage.setItem("birthday_in_app_notifications", JSON.stringify(next));
+      return next;
+    });
+
+    appendLog(`📢 Notification: ${mockProf.name} published their birthday list with ${mockProf.wishlistToPost.length} gift items.`);
+    triggerToast("Wishlist Posted! 📣", `${mockProf.name} just published their wishlist. Tap to see.`);
+  };
+
+  const handleConnectAndSave = (relationshipType: string) => {
+    if (!pendingConnectProfile) return;
+    const profile = pendingConnectProfile;
+
+    // Free account friend limit check
+    const companionCount = friends.filter(f => f.id !== "alex").length;
+    if (accountType === "Free" && companionCount >= 5) {
+      setShowUpgradePromptModal(true);
+      triggerToast("Friend Limit Reached 👑", "Free account tier is capped at 5 additions. Upgrade for unlimited!");
+      setShowRelationModal(false);
+      setPendingConnectProfile(null);
+      return;
+    }
+
+    const nextId = profile.id;
+
+    // Add to friends with empty wishlist
+    const newFriend: Friend = {
+      id: nextId,
+      name: profile.name,
+      birthday: profile.birthday,
+      relationship: relationshipType, // Can be "Configure Later"
+      age: profile.age,
+      interests: profile.interests,
+      avatar: profile.avatar,
+      wishlist: [], // EMPTY initially!
+      achievements: [],
+      phone: profile.phone || "+233241234567",
+      snapchat: profile.username || "friend_snap"
+    };
+
+    setFriends(prev => [...prev, newFriend]);
+    appendLog(`🤝 Connected: ${profile.name} added (Relation: ${relationshipType})`);
+
+    // Set countdown timer to simulate friend posting list in 12 seconds
+    setPendingPostingTimers(prev => ({
+      ...prev,
+      [nextId]: 12
+    }));
+
+    setShowRelationModal(false);
+    setPendingConnectProfile(null);
+
+    // If user is inside the connect view, we want to immediately switch back or let them observe
+    triggerToast(
+      "Connection Synced 🤝",
+      `${profile.name} added. Their wishlist schedule trigger will deploy in 12s.`
+    );
+  };
+
+  // Timer runner
+  useEffect(() => {
+    const activeTimers = Object.entries(pendingPostingTimers);
+    if (activeTimers.length === 0) return;
+
+    const interval = setInterval(() => {
+      setPendingPostingTimers(prev => {
+        const next = { ...prev };
+        let didUpdate = false;
+
+        Object.keys(next).forEach(friendId => {
+          if (next[friendId] > 1) {
+            next[friendId] -= 1;
+            didUpdate = true;
+          } else {
+            delete next[friendId];
+            didUpdate = true;
+            // Run on timeout
+            setTimeout(() => {
+              handlePostWishlistAutomatically(friendId);
+            }, 10);
+          }
+        });
+
+        return didUpdate ? next : prev;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [pendingPostingTimers]);
+
+  // Add new friend to list
+  const handleCreateFriend = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Check Freemium tier constraints
+    const companionCount = friends.filter(f => f.id !== "alex").length;
+    if (accountType === "Free" && companionCount >= 5) {
+      setShowUpgradePromptModal(true);
+      triggerToast("Friend Limit Reached 👑", "Free account tier is capped at 5 additions. Upgrade for unlimited!");
+      setShowAddProfile(false);
+      return;
+    }
+
+    if (!newFriendName.trim() || !newFriendBirthday) {
+      triggerToast("Missing Fields", "Please make sure you provide a name and birthday.");
+      return;
+    }
+
+    const nextId = newFriendName.toLowerCase().replace(/\s+/g, "-");
+    const avatarBackgrounds = ["bg-teal-500", "bg-emerald-500", "bg-indigo-500", "bg-purple-500", "bg-amber-500", "bg-rose-500", "bg-pink-500"];
+    const randomBg = avatarBackgrounds[Math.floor(Math.random() * avatarBackgrounds.length)];
+
+    const interestArr = newFriendInterestsText
+      ? newFriendInterestsText.split(",").map((s) => s.trim()).filter(Boolean)
+      : ["Camera Decor", "Coffee Specialties", "Indie Music"];
+
+    const newFriend: Friend = {
+      id: nextId,
+      name: newFriendName,
+      birthday: newFriendBirthday,
+      relationship: newFriendRelationship,
+      age: newFriendAge || "25",
+      interests: interestArr,
+      avatar: randomBg,
+      wishlist: [],
+      achievements: [],
+      phone: newFriendPhone.trim() || "+233241234567",
+      whatsapp: newFriendWhatsApp.trim() || "+233241234567",
+      email: newFriendEmail.trim() || "friend@example.com",
+      snapchat: newFriendSnapchat.trim() || "friend_snap"
+    };
+
+    setFriends([...friends, newFriend]);
+    appendLog(`Added a new Buddy Profile: ${newFriendName} (Relationship: ${newFriendRelationship})`);
+    
+    // reset form fields
+    setNewFriendName("");
+    setNewFriendBirthday("");
+    setNewFriendAge("25");
+    setNewFriendInterestsText("");
+    setNewFriendPhone("");
+    setNewFriendWhatsApp("");
+    setNewFriendEmail("");
+    setNewFriendSnapchat("");
+    setShowAddProfile(false);
+    setSelectedFriendId(nextId);
+    
+    triggerToast(
+      "Buddy Welcomed!",
+      `${newFriendName} is added. Open the AI lab or widgets section to connect.`
+    );
+  };
+
+  // Delete buddy completely
+  const handleDeleteFriendProfile = (friendId: string) => {
+    if (friendId === "alex") {
+      triggerToast("Forbidden", "You cannot delete your own profile.");
+      return;
+    }
+    const target = friends.find(f => f.id === friendId);
+    if (window.confirm(`Are you sure you want to delete ${target?.name} from your dashboard circles?`)) {
+      const remaining = friends.filter(f => f.id !== friendId);
+      setFriends(remaining);
+      appendLog(`Deleted companion profile: ${target?.name}`);
+      setSelectedFriendId(remaining[0]?.id || "alex");
+      triggerToast("Buddy Removed", `${target?.name} has been deleted.`);
+    }
+  };
+
+  // Manage companion interests/tags
+  const handleAddInterestTag = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customInterest.trim()) return;
+
+    const updated = friends.map((f) => {
+      if (f.id === selectedFriendId) {
+        if (!f.interests.includes(customInterest.trim())) {
+          return {
+            ...f,
+            interests: [...f.interests, customInterest.trim()]
+          };
+        }
+      }
+      return f;
+    });
+
+    setFriends(updated);
+    appendLog(`Tagged ${selectedFriend.name} with: #${customInterest.trim()}`);
+    setCustomInterest("");
+    triggerToast("Tag Added", `Saved hobby indicator: #${customInterest}`);
+  };
+
+  const handleRemoveInterestTag = (tagToRemove: string) => {
+    const updated = friends.map((f) => {
+      if (f.id === selectedFriendId) {
+        return {
+          ...f,
+          interests: f.interests.filter(tag => tag !== tagToRemove)
+        };
+      }
+      return f;
+    });
+    setFriends(updated);
+    appendLog(`Removed tag #${tagToRemove} from ${selectedFriend.name}.`);
+    triggerToast("Tag Removed", `Removed interest modifier.`);
+  };
+
+  // Quick Action to directly save an AI recommendation into selected user's wishlist
+  const saveAiSuggestionToWishlist = (gift: GiftSuggestion) => {
+    const newWish: WishlistItem = {
+      id: `wish-${Date.now()}`,
+      title: gift.name,
+      price: gift.estimatedPrice || "$40.00",
+      url: "https://example.com/gift-finder",
+      isClaimed: false
+    };
+    
+    const updated = friends.map(f => {
+      if (f.id === selectedFriend.id) {
+        return { ...f, wishlist: [...f.wishlist, newWish] };
+      }
+      return f;
+    });
+    setFriends(updated);
+    appendLog(`Linked AI Choice "${gift.name}" into ${selectedFriend.name}'s registry.`);
+    triggerToast("Wishlist Synced", "Saved AI choice directly into companion wishlist.");
+  };
+
+  // Clear log history
+  const handleClearLogs = () => {
+    const freshLogs = [`[${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}] Workspace record feed initialized.`];
+    setLogs(freshLogs);
+    localStorage.setItem("birthday_activity_logs", JSON.stringify(freshLogs));
+    triggerToast("Logs Audited", "Record ledger reset successfully.");
+  };
+
+  // Filter buddies list according to query and relationship group
+  const getFilteredFriends = () => {
+    return friends.filter(friend => {
+      const matchesSearch = friend.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            friend.interests.some(i => i.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesCategory = filterRelationship === "All" || friend.relationship === filterRelationship;
+      return matchesSearch && matchesCategory;
+    });
+  };
+
+  const sortedUpcoming = getUpcomingSorted();
+  const nextTarget = sortedUpcoming.find((f) => f.id !== "alex") || sortedUpcoming[0];
+  const nextTargetDays = calculateDaysRemaining(nextTarget.birthday);
+
+  // Statistics summaries for executive deck
+  const totalBuddiesCount = friends.filter(f => f.id !== "alex").length;
+  const claimedWishesCount = friends.reduce((sum, f) => {
+    return sum + f.wishlist.filter(w => w.isClaimed).length;
+  }, 0);
+  const totalWishesCount = friends.reduce((sum, f) => {
+    return sum + f.wishlist.length;
+  }, 0);
+  const unlockLevel = (friends.find(f => f.id === 'alex')?.achievements.length || 0) * 2 + 1;
+
+  if (!userSession) {
+    return (
+      <div className="w-full min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden text-slate-100" id="auth-gate-root">
+        {/* Abstract decorative ambient glowing nodes */}
+        <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none animate-pulse" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] bg-teal-500/10 rounded-full blur-[120px] pointer-events-none" />
+
+        {/* Global Toast within login view too */}
+        <AnimatePresence>
+          {showToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -45, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              className="fixed top-6 right-6 left-6 md:left-auto md:w-96 bg-slate-900 border border-slate-800 text-white rounded-2xl p-4 shadow-2xl z-50 flex items-start gap-3 text-left"
+            >
+              <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl">
+                <Sparkles className="w-5 h-5 animate-spin" />
+              </div>
+              <div className="flex-1">
+                <h5 className="font-bold text-xs text-indigo-400 uppercase tracking-widest">{toastTitle}</h5>
+                <p className="text-xs text-zinc-300 mt-1 leading-relaxed">{toastMessage}</p>
+              </div>
+              <button onClick={() => setShowToast(false)} className="text-zinc-500 hover:text-white transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="max-w-3xl w-full z-10 space-y-6">
+          
+          {/* Header Branding */}
+          <motion.div
+            initial={{ opacity: 0, y: -15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center space-y-2"
+          >
+            <span className="inline-flex w-12 h-12 bg-indigo-600 text-white rounded-2xl items-center justify-center text-2xl font-black shadow-xl shadow-indigo-600/35 mb-1 cursor-pointer">
+              B
+            </span>
+            <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+              BloomBirth <span className="text-[10px] bg-indigo-500/20 text-indigo-400 font-extrabold tracking-widest uppercase px-2 py-0.5 rounded-full border border-indigo-500/30">Pro &amp; Sync</span>
+            </h1>
+            <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+              Connect your secure contact book to stream real-time birthday events, generate thoughtful wishlist targets using Gemini AI suggestions, and monitor alarms.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* Form Column Code block */}
+            <motion.div
+              initial={{ opacity: 0, x: -15 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-3xl p-5 md:p-6 shadow-2xl space-y-4"
+            >
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-100 flex items-center gap-2">
+                  <UserPlus className="w-4 h-4 text-indigo-400" />
+                  <span>Configure Custom Identity</span>
+                </h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">
+                  Establish custom handle parameters to customize the cockpit calendar representation.
+                </p>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!signInName.trim() || !signInUsername.trim() || !signInEmail.trim() || !signInPhone.trim() || !signInWhatsApp.trim()) {
+                    triggerToast("Missing Fields ⚠️", "Provide full legal name, Snapchat handle, phone number, WhatsApp, and email.");
+                    return;
+                  }
+                  const sessionObj = {
+                    name: signInName.trim(),
+                    username: signInUsername.trim().replace(/^@/, ""),
+                    email: signInEmail.trim(),
+                    phone: signInPhone.trim(),
+                    whatsapp: signInWhatsApp.trim(),
+                    birthday: signInBirthday || "1997-06-25",
+                    avatar: signInAvatar || "bg-indigo-600",
+                    interests: signInInterests
+                  };
+                  localStorage.setItem("birthday_authenticated_user", JSON.stringify(sessionObj));
+                  setUserSession(sessionObj);
+                  triggerToast("Circle Synced 🎉", `Successfully initiated workspace for ${sessionObj.name}!`);
+                  appendLog(`🔐 Authenticated: Active user session established for @${sessionObj.username}.`);
+                }}
+                className="space-y-3.5 text-left"
+              >
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Full Legal Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={signInName}
+                    onChange={(e) => setSignInName(e.target.value)}
+                    placeholder="e.g. Alex Patel"
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 font-sans">Snapchat Handle</label>
+                    <input
+                      type="text"
+                      required
+                      value={signInUsername}
+                      onChange={(e) => setSignInUsername(e.target.value)}
+                      placeholder="e.g. alex_snap"
+                      className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Your Birthday</label>
+                    <input
+                      type="date"
+                      required
+                      value={signInBirthday}
+                      onChange={(e) => setSignInBirthday(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 font-sans">Phone Number</label>
+                    <input
+                      type="text"
+                      required
+                      value={signInPhone}
+                      onChange={(e) => setSignInPhone(e.target.value)}
+                      placeholder="e.g. +233241234567"
+                      className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 font-sans">WhatsApp Number</label>
+                    <input
+                      type="text"
+                      required
+                      value={signInWhatsApp}
+                      onChange={(e) => setSignInWhatsApp(e.target.value)}
+                      placeholder="e.g. +233241234567"
+                      className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 font-sans">Email Address</label>
+                    <input
+                      type="email"
+                      required
+                      value={signInEmail}
+                      onChange={(e) => setSignInEmail(e.target.value)}
+                      placeholder="e.g. alex@example.com"
+                      className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Avatar Palette Selection */}
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Favorite Avatar Accent</label>
+                  <div className="flex gap-2">
+                    {[
+                      { bg: "bg-teal-500", name: "Teal" },
+                      { bg: "bg-indigo-500", name: "Indigo" },
+                      { bg: "bg-amber-500", name: "Amber" },
+                      { bg: "bg-rose-500", name: "Rose" },
+                      { bg: "bg-emerald-500", name: "Emerald" },
+                      { bg: "bg-pink-500", name: "Plum" }
+                    ].map(pal => (
+                      <button
+                        key={pal.bg}
+                        type="button"
+                        onClick={() => setSignInAvatar(pal.bg)}
+                        className={`w-7 h-7 rounded-lg transition-transform hover:scale-110 flex items-center justify-center cursor-pointer relative ${pal.bg} ${
+                          signInAvatar === pal.bg ? "ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-105" : "opacity-75"
+                        }`}
+                        title={pal.name}
+                      >
+                        {signInAvatar === pal.bg && <Check className="w-3.5 h-3.5 text-white stroke-[3.5]" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Dynamic Interests Choice Box */}
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Select Main Interest Niches</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      "Photography", "Specialty Coffee", "Cyberpunk Novels", "Mechanic Keyboards",
+                      "Yoga & Zen", "Hiking & Trails", "Baking Cakes", "Guitar Instrumental", "Modern Design"
+                    ].map(tag => {
+                      const isChosen = signInInterests.includes(tag);
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => {
+                            if (isChosen) {
+                              setSignInInterests(prev => prev.filter(t => t !== tag));
+                            } else {
+                              setSignInInterests(prev => [...prev, tag]);
+                            }
+                          }}
+                          className={`px-2 py-1.5 rounded-lg text-[9px] font-bold font-sans tracking-tight transition-colors cursor-pointer border ${
+                            isChosen 
+                              ? "bg-indigo-650/30 text-indigo-300 border-indigo-500" 
+                              : "bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200"
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full text-center bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white py-3 rounded-2xl font-black text-xs transition-all shadow-xl shadow-indigo-600/25 tracking-wide cursor-pointer flex items-center justify-center gap-1"
+                >
+                  Confirm Registration &amp; Unlock Deck &rarr;
+                </button>
+              </form>
+            </motion.div>
+
+            {/* Quick Speedrun Presets (Span 5) */}
+            <motion.div
+              initial={{ opacity: 0, x: 15 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="lg:col-span-5 flex flex-col gap-4 text-left"
+            >
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-3.5">
+                <div>
+                  <h4 className="font-extrabold text-[13px] text-white flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+                    <span>Quick Autofill Presets</span>
+                  </h4>
+                  <p className="text-[10px] text-slate-400 leading-normal mt-0.5">
+                    Skip custom inputs and speedrun directly with prepared benchmark personas.
+                  </p>
+                </div>
+
+                <div className="space-y-2.5">
+                  <button
+                    onClick={() => {
+                      setSignInName("Alex Patel");
+                      setSignInUsername("alex_snap");
+                      setSignInEmail("alex.patel@gmail.com");
+                      setSignInPhone("+233241234567");
+                      setSignInWhatsApp("+233241234567");
+                      setSignInBirthday("1997-06-25");
+                      setSignInAvatar("bg-teal-500");
+                      setSignInInterests(["Photography", "Specialty Coffee", "Cyberpunk Novels", "Mechanic Keyboards"]);
+                      triggerToast("Form Configured ✨", "Pre-loaded Alex Patel credentials. Click verify to enter.");
+                    }}
+                    className="w-full text-left p-3 rounded-2xl bg-slate-950/70 hover:bg-slate-950 border border-slate-800/80 hover:border-teal-500 transition-all cursor-pointer flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-7 h-7 rounded-lg bg-teal-500 text-white flex items-center justify-center font-bold text-xs shrink-0 font-mono">AP</span>
+                      <div>
+                        <span className="text-xs font-bold text-slate-100 block">Alex Patel (Recommended)</span>
+                        <span className="text-[9px] text-slate-450 block font-mono">@alex_snap • June 25 • Technology</span>
+                      </div>
+                    </div>
+                    <span className="text-[9px] text-teal-400 font-bold opacity-0 group-hover:opacity-100 transition-all mr-1">Load Preset &rarr;</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSignInName("Sophia Jenkins");
+                      setSignInUsername("baking_sophia_snap");
+                      setSignInEmail("sophia.bakes.coffee@icloud.com");
+                      setSignInPhone("+233245556666");
+                      setSignInWhatsApp("+233245556666");
+                      setSignInBirthday("1995-10-14");
+                      setSignInAvatar("bg-pink-500");
+                      setSignInInterests(["Baking Cakes", "Specialty Coffee", "Modern Design", "Yoga & Zen"]);
+                      triggerToast("Form Configured ✨", "Pre-loaded Sophia Jenkins credentials. Click verify to enter.");
+                    }}
+                    className="w-full text-left p-3 rounded-2xl bg-slate-950/70 hover:bg-slate-950 border border-slate-800/80 hover:border-pink-500 transition-all cursor-pointer flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-7 h-7 rounded-lg bg-pink-500 text-white flex items-center justify-center font-bold text-xs shrink-0 font-mono">SJ</span>
+                      <div>
+                        <span className="text-xs font-bold text-slate-100 block">Sophia Jenkins</span>
+                        <span className="text-[9px] text-slate-450 block font-mono">@baking_sophia_snap • Oct 14 • Culinary arts</span>
+                      </div>
+                    </div>
+                    <span className="text-[9px] text-pink-400 font-bold opacity-0 group-hover:opacity-100 transition-all mr-1">Load Preset &rarr;</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSignInName("Marcus Vance");
+                      setSignInUsername("marcus_snap");
+                      setSignInEmail("marcus.vance88@gmail.com");
+                      setSignInPhone("+233209876543");
+                      setSignInWhatsApp("+233209876543");
+                      setSignInBirthday("1998-04-02");
+                      setSignInAvatar("bg-amber-500");
+                      setSignInInterests(["Hiking & Trails", "Photography", "Guitar Instrumental", "Cyberpunk Novels"]);
+                      triggerToast("Form Configured ✨", "Pre-loaded Marcus Vance credentials. Click verify to enter.");
+                    }}
+                    className="w-full text-left p-3 rounded-2xl bg-slate-950/70 hover:bg-slate-950 border border-slate-800/80 hover:border-amber-500 transition-all cursor-pointer flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-xs shrink-0 font-mono">MV</span>
+                      <div>
+                        <span className="text-xs font-bold text-slate-100 block">Marcus Vance</span>
+                        <span className="text-[9px] text-slate-450 block font-mono">@marcus_snap • Apr 2 • Adventure sports</span>
+                      </div>
+                    </div>
+                    <span className="text-[9px] text-amber-400 font-bold opacity-0 group-hover:opacity-100 transition-all mr-1">Load Preset &rarr;</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Secure Handshake Trust Panel */}
+              <div className="bg-slate-900/50 border border-slate-850 p-4 rounded-3xl space-y-1 my-1 flex gap-3 text-left">
+                <span className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl block shrink-0 h-fit">
+                  <Clock className="w-4 h-4 text-emerald-400" />
+                </span>
+                <div>
+                  <h5 className="font-extrabold text-xs text-slate-200">Local Isolation Active</h5>
+                  <p className="text-[10px] text-slate-400 leading-relaxed">
+                    BloomBirth respects client-side sandboxes. Your authenticated identity metadata remains entirely sandboxed inside your local browser cookie storage.
+                  </p>
+                </div>
+              </div>
+
+            </motion.div>
+
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full min-h-screen bg-[#F1F5F9] flex flex-col md:flex-row font-sans text-slate-800" id="bloom-app-root">
+      
+      {/* Toast Alert Prompt Overlay */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -40, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="fixed top-6 right-6 left-6 md:left-auto md:w-96 bg-slate-900 text-white rounded-2xl p-4 shadow-2xl border border-white/10 z-50 flex items-start gap-3 text-left"
+            id="global-toast-el"
+          >
+            <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <h5 className="font-bold text-xs text-indigo-400 uppercase tracking-widest">{toastTitle}</h5>
+              <p className="text-xs text-zinc-300 mt-1 leading-relaxed">{toastMessage}</p>
+            </div>
+            <button onClick={() => setShowToast(false)} className="text-zinc-500 hover:text-white transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* WORKSPACE LEFT VERTICAL SIDEBAR NAVIGATION PANEL */}
+      <aside className="hidden md:flex w-72 bg-slate-900 text-slate-200 flex-col justify-between shrink-0 border-r border-slate-850 shadow-xl" id="sidebar-panel">
+        <div>
+          {/* Workspace Branding Header */}
+          <div className="p-6 border-b border-slate-800" id="sidebar-title-cell">
+            <div className="flex items-center gap-3">
+              <span className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-md cursor-pointer hover:bg-indigo-500 transition-colors">
+                B
+              </span>
+              <div>
+                <h1 className="text-lg font-black text-white tracking-tight flex items-center gap-1.5">
+                  BloomBirth <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded font-mono uppercase">Pro</span>
+                </h1>
+                <p className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">Birthday &amp; Wishlist Suite</p>
+              </div>
+            </div>
+
+            {/* Desktop clock widget showing mocked benchmark */}
+            <div className="mt-4 bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-left flex justify-between items-center bg-opacity-40">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-emerald-400" />
+                <span className="text-[11px] font-mono text-zinc-300 font-semibold uppercase tracking-wide">June 3, 2026</span>
+              </div>
+              <span className="text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded uppercase">Active</span>
+            </div>
+
+            {/* Dynamic Authenticated Session Display Desk */}
+            {userSession && (
+              <div className="mt-3.5 p-3 bg-slate-950/80 rounded-2xl border border-slate-800 flex items-center justify-between shadow-inner">
+                <div className="flex items-center gap-2 min-w-0 font-sans">
+                  <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs text-white shrink-0 ${userSession.avatar}`}>
+                    {userSession.name.split(" ").map(n => n[0]).join("")}
+                  </span>
+                  <div className="min-w-0">
+                    <span className="text-xs font-black text-white block truncate leading-tight">{userSession.name}</span>
+                    <span className="text-[10px] text-indigo-400 block truncate font-mono">@{userSession.username}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("birthday_authenticated_user");
+                    setUserSession(null);
+                    triggerToast("Logged Out Successfully ✅", "Session closed. Reverted workspace to default Guest Profile.");
+                  }}
+                  className="bg-slate-900 hover:bg-rose-950/30 text-zinc-400 hover:text-rose-400 font-black text-[9px] p-1.5 px-2.5 rounded-lg border border-slate-800 transition cursor-pointer shrink-0"
+                  title="Switch and Logout current user details"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Navigation Links Group */}
+          <nav className="p-4 space-y-1.5 text-left" id="sidebar-navigation">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 py-1.5 block">Menu Sections</p>
+            
+            <button
+              onClick={() => setActiveSection("dashboard")}
+              className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${
+                activeSection === "dashboard"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/30 font-extrabold"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+              }`}
+            >
+              <Home className="w-4 h-4" />
+              <span>Executive Deck</span>
+              <span className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-400" />
+            </button>
+
+            <button
+              onClick={() => setActiveSection("registry")}
+              className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${
+                activeSection === "registry"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/30 font-extrabold"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Buddies Registry</span>
+              <span className="ml-auto bg-slate-800 text-[10px] px-2 py-0.5 rounded text-indigo-300 font-mono">
+                {friends.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveSection("ai-lab")}
+              className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${
+                activeSection === "ai-lab"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/30 font-extrabold"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+              }`}
+            >
+              <Wand2 className="w-4 h-4" />
+              <span>Smart AI Gift Lab</span>
+              <span className="ml-auto bg-emerald-500/15 text-emerald-400 font-mono text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Idea AI</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSection("my-wishlist")}
+              className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${
+                activeSection === "my-wishlist"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/30 font-extrabold"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+              }`}
+            >
+              <Gift className="w-4 h-4" />
+              <span>My Wishlist Hub</span>
+              <span className="ml-auto bg-teal-500/10 text-teal-300 font-mono text-[10px] px-2 py-0.5 rounded font-bold">Self</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSection("widgets")}
+              className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${
+                activeSection === "widgets"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/30 font-extrabold"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+              }`}
+            >
+              <Smartphone className="w-4 h-4" />
+              <span>Widget Simulator</span>
+              <span className="ml-auto text-[10px] text-cyan-400 bg-cyan-900/30 px-1.5 py-0.5 rounded font-bold">iOS/AND</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSection("achievements")}
+              className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${
+                activeSection === "achievements"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/30 font-extrabold"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+              }`}
+            >
+              <Award className="w-4 h-4" />
+              <span>Milestones &amp; Logs</span>
+              <span className="ml-auto bg-amber-500/15 text-amber-400 text-[10px] px-2 py-0.5 rounded font-mono font-extrabold">
+                Lvl {unlockLevel}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveSection("upgrade")}
+              className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 border ${
+                activeSection === "upgrade"
+                  ? "bg-amber-500 text-slate-950 border-amber-400 shadow-lg font-extrabold"
+                  : "text-amber-400 hover:text-white border-dashed border-amber-500/30 hover:bg-slate-800/60"
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Premium Plan Tiers</span>
+              <span className="ml-auto bg-amber-500/10 text-amber-300 font-mono text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Upgrade</span>
+            </button>
+          </nav>
+        </div>
+
+        {/* Sidebar Footer Details */}
+        <div className="p-4 border-t border-slate-800 text-slate-500 text-[10.5px]" id="sidebar-footer">
+          <p className="font-semibold text-slate-400">Scheduled Landmark</p>
+          <div className="flex justify-between items-center mt-1">
+            <span className="truncate">{nextTarget.name}</span>
+            <span className="font-semibold text-indigo-400">In {nextTargetDays}d</span>
+          </div>
+        </div>
+      </aside>
+
+      {/* MAIN CONTAINER WORKSPACE */}
+      <main className="flex-1 flex flex-col min-w-0 pb-20 md:pb-0" id="main-canvas-wrapper">
+        
+        {/* TOP STATUS BAR ROW */}
+        <header className="bg-white border-b border-slate-200 px-6 md:px-8 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 z-10 text-left relative" id="main-workspace-header">
+          <div className="flex w-full md:w-auto items-center justify-between md:justify-start gap-4">
+            <div>
+              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black block">Active Workspace Desk</span>
+              <h2 className="text-xl font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
+                {activeSection === "dashboard" && "Executive Command Center"}
+                {activeSection === "registry" && "Buddies Registry Console"}
+                {activeSection === "ai-lab" && "Smart Spark AI Gift Lab"}
+                {activeSection === "my-wishlist" && "Alex Patel's Desire Hub"}
+                {activeSection === "widgets" && "iOS & Android Widget Studio"}
+                {activeSection === "achievements" && "Milestones Awards & Activity Ledger"}
+                {activeSection === "signin" && "Identity Settings & Companion Search"}
+                {activeSection === "upgrade" && "Premium Plan Tiers"}
+              </h2>
+            </div>
+
+            {/* Mobile/Compact Profile Avatar Button in top corner */}
+            <button
+              onClick={() => setActiveSection("signin")}
+              className="md:hidden flex items-center gap-1.5 bg-slate-150 hover:bg-slate-200 p-1.5 pr-2.5 rounded-full border border-slate-200/80 transition-all cursor-pointer shadow-xs shrink-0"
+              title="Access profile & session"
+            >
+              {userSession ? (
+                <>
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] text-white shrink-0 ${userSession.avatar}`}>
+                    {userSession.name.split(" ").map(n => n[0]).join("")}
+                  </span>
+                  <span className="text-[10px] font-black text-slate-800 truncate max-w-[65px]">{userSession.name.split(" ")[0]}</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center">
+                    <User className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-[10px] font-bold text-indigo-600">Sign In</span>
+                </>
+              )}
+            </button>
+
+            {/* Mobile/Compact Premium/Upgrade Pill in top corner */}
+            <button
+              onClick={() => {
+                setActiveSection("upgrade");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className={`md:hidden flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/25 text-amber-600 border border-amber-500/35 p-1.5 px-2.5 rounded-full transition-all cursor-pointer shadow-xs shrink-0 ${
+                activeSection === "upgrade" ? "bg-amber-500 text-slate-950 font-black border-amber-400" : ""
+              }`}
+              title="Upgrade to Premium"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-[9.5px] font-black uppercase tracking-wider">Premium</span>
+            </button>
+          </div>
+
+          {/* Quick Header actions integration */}
+          <div className="flex flex-wrap md:flex-nowrap items-center gap-3 w-full md:w-auto">
+            <div className="hidden sm:flex bg-[#FAF9FF] border border-slate-200 px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 shadow-xs items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse" />
+              <span>Next occurrence: {nextTarget.name} ({nextTargetDays} days left)</span>
+            </div>
+
+            {/* Real-time Notification Bell Widget */}
+            <button
+              onClick={() => setShowNotificationDrawer(true)}
+              className="relative p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer inline-flex items-center justify-center border border-slate-200"
+              title="Open Notification Feed"
+              id="notification-bell-btn"
+            >
+              <Bell className="w-4 h-4" />
+              {notifications.filter(n => !n.isRead).length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 bg-rose-600 text-[9px] font-black text-white rounded-full flex items-center justify-center px-1 font-mono animate-pulse border border-white">
+                  {notifications.filter(n => !n.isRead).length}
+                </span>
+              )}
+            </button>
+
+            {/* Desktop persistent custom profile button */}
+            <button
+              onClick={() => setActiveSection("signin")}
+              className="hidden md:flex items-center gap-2.5 bg-slate-50 hover:bg-indigo-50/50 p-1.5 pr-3 rounded-xl border border-slate-200 transition-all cursor-pointer shrink-0"
+              title="Identity & Session Settings"
+            >
+              {userSession ? (
+                <>
+                  <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-[10px] text-white shrink-0 ${userSession.avatar}`}>
+                    {userSession.name.split(" ").map(n => n[0]).join("")}
+                  </span>
+                  <div className="text-left font-sans">
+                    <span className="text-[10.5px] font-extrabold text-slate-800 block leading-none">{userSession.name}</span>
+                    <span className="text-[8.5px] text-indigo-600 font-bold block mt-0.5 uppercase tracking-wider animate-pulse">Active Workspace</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="w-7 h-7 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div className="text-left leading-none font-sans">
+                    <span className="text-[10.5px] font-black text-indigo-600 block">Sign In</span>
+                    <span className="text-[8.5px] text-slate-400 block mt-0.5">Guest Space</span>
+                  </div>
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={() => setShowAddProfile(true)}
+              className="flex-1 sm:flex-none justify-center px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-150 transition-all cursor-pointer active:scale-95"
+              id="header-profile-add-btn"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>New Buddy</span>
+            </button>
+          </div>
+        </header>
+
+        {/* MODAL DIALOG POPUP: Create New Buddy Profile */}
+        <AnimatePresence>
+          {showAddProfile && (
+            <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full border border-slate-100 shadow-2xl relative text-left"
+                id="create-friend-dialog-card"
+              >
+                <button 
+                  onClick={() => setShowAddProfile(false)} 
+                  className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                    <UserPlus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900">New Birthday Circle Bud</h3>
+                    <p className="text-xs text-slate-500">Add an interactive companion card to monitor registries</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleCreateFriend} className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Companion Full Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Sarah Miller"
+                      value={newFriendName}
+                      onChange={(e) => setNewFriendName(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:ring-2 focus:ring-indigo-150 focus:outline-none focus:bg-white"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Birthday Date</label>
+                      <input
+                        type="date"
+                        required
+                        value={newFriendBirthday}
+                        onChange={(e) => setNewFriendBirthday(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs focus:ring-2 focus:ring-indigo-150 focus:outline-none focus:bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Turning Age</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newFriendAge}
+                        onChange={(e) => setNewFriendAge(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs focus:ring-2 focus:ring-indigo-150 focus:outline-none focus:bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Relationship Category</label>
+                    <select
+                      value={newFriendRelationship}
+                      onChange={(e) => setNewFriendRelationship(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-150 focus:outline-none focus:bg-white font-semibold"
+                    >
+                      <option value="Best Friend">Best Friend</option>
+                      <option value="College Buddy">College Buddy</option>
+                      <option value="Work Colleague">Work Colleague</option>
+                      <option value="Family Relative">Family Relative</option>
+                      <option value="Gym Partner">Gym Partner</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-sans">Phone Number</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. +233241234567"
+                        value={newFriendPhone}
+                        onChange={(e) => setNewFriendPhone(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs focus:ring-2 focus:ring-indigo-150 focus:outline-none focus:bg-white font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-sans">WhatsApp Number</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. +233241234567"
+                        value={newFriendWhatsApp}
+                        onChange={(e) => setNewFriendWhatsApp(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs focus:ring-2 focus:ring-indigo-150 focus:outline-none focus:bg-white font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-sans">Email Address</label>
+                      <input
+                        type="email"
+                        placeholder="e.g. friend@example.com"
+                        value={newFriendEmail}
+                        onChange={(e) => setNewFriendEmail(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs focus:ring-2 focus:ring-indigo-150 focus:outline-none focus:bg-white font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-sans">Snapchat Username</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. friend_snap"
+                        value={newFriendSnapchat}
+                        onChange={(e) => setNewFriendSnapchat(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs focus:ring-2 focus:ring-indigo-150 focus:outline-none focus:bg-white font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Interests & Hobbies (comma-separated)</label>
+                    <p className="text-[9.5px] text-slate-400 mb-1">These parameters feed the smart AI suggestions lab matcher score</p>
+                    <input
+                      type="text"
+                      placeholder="e.g. Specialty coffee, Acoustic vinyl, Watercolor, Coding"
+                      value={newFriendInterestsText}
+                      onChange={(e) => setNewFriendInterestsText(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:ring-2 focus:ring-indigo-150 focus:outline-none focus:bg-white"
+                    />
+                  </div>
+
+                  <div className="pt-2 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddProfile(false)}
+                      className="flex-1 py-2 rounded-xl text-xs font-bold text-slate-650 bg-slate-100 hover:bg-slate-250 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-lg transition-colors"
+                    >
+                      Create Profile
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+
+          {/* ==================== MODAL DIALOG POPUP: FREEMIUM CAPACITY ALERT ==================== */}
+          {showUpgradePromptModal && (
+            <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white rounded-[2rem] p-6 md:p-8 max-w-sm w-full border border-slate-100 shadow-2xl relative text-left space-y-4"
+                id="upgrade-limit-dialog-card"
+              >
+                <button 
+                  onClick={() => setShowUpgradePromptModal(false)} 
+                  className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-amber-500/10 text-amber-500 rounded-xl">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900 tracking-tight">👑 Expand Companion Capacity</h3>
+                    <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Free Plan Maximum Limit Reached</p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-600 leading-relaxed font-sans mt-2">
+                  Standard Free accounts are limited to tracking a maximum of <strong>5 friends</strong>. Upgrade to our signature <strong>Pro VIP plan (GHS 15/month)</strong> to unlock:
+                </p>
+
+                <ul className="text-xs space-y-1.5 pl-1 font-semibold">
+                  <li className="flex items-center gap-2 text-indigo-950 font-bold">
+                    <span className="text-indigo-500 text-sm">✦</span>
+                    <span>Track Infinite Companions &amp; Circles</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-indigo-500 text-xs">✦</span>
+                    <span>Automated warnings 7-days &amp; 1-day prior</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-indigo-500 text-xs">✦</span>
+                    <span>Optional simulated Email delivery sync</span>
+                  </li>
+                </ul>
+
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-[10px] text-slate-500 italic">
+                  * Ghana sandbox gateway parses instant mobile credits (no physical card charges required).
+                </div>
+
+                <div className="flex flex-col gap-2 pt-1 font-sans">
+                  <button
+                    onClick={() => {
+                      setShowUpgradePromptModal(false);
+                      setAccountType("Pro");
+                      setActiveSection("upgrade");
+                      triggerToast("Upgraded successfully! 👑", "Infinite slots unlocked. Active alert configurations updated.");
+                      appendLog("💳 Transaction: Member plan upgraded to Pro VIP (GHS 15.00/month) via limit dialog.");
+                    }}
+                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl text-xs shadow-lg shadow-indigo-150 transition cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <span>Upgrade to Pro VIP (GHS 15)</span>
+                    <span className="text-sm">&rarr;</span>
+                  </button>
+                  <button
+                    onClick={() => setShowUpgradePromptModal(false)}
+                    className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-605 font-bold rounded-xl text-[10.5px] transition cursor-pointer text-center"
+                  >
+                    Keep 5 buddies for now
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+
+          {/* ==================== MODAL DIALOG POPUP: SEND Simulated GIFT ==================== */}
+          {showSendGiftModal && selectedGiftItem && (
+            <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white rounded-[2rem] p-6 md:p-8 max-w-sm w-full border border-slate-100 shadow-2xl relative text-left space-y-3.5"
+                id="send-gift-simulator-card"
+              >
+                <button 
+                  onClick={() => setShowSendGiftModal(false)} 
+                  className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <Gift className="w-5 h-5 animate-bounce" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 leading-tight">🚢 Send simulated Gift Package</h3>
+                    <p className="text-[10px] text-indigo-500 font-semibold">{selectedGiftItem.friendName}&#39;s Wishlist Simulator</p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-left space-y-0.5">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block font-sans">Selected Desire Tag</span>
+                  <div className="flex justify-between items-baseline gap-2">
+                    <span className="font-extrabold text-xs text-slate-800 leading-tight block truncate max-w-[200px]">{selectedGiftItem.title}</span>
+                    <span className="font-black text-xs text-emerald-600 whitespace-nowrap">{selectedGiftItem.price}</span>
+                  </div>
+                </div>
+
+                {/* Simulated Delivery Logistics Configuration */}
+                <div className="space-y-3 font-sans">
+                  <div>
+                    <label className="block text-[9.5px] font-bold text-slate-450 uppercase mb-1">Simulated shipment agency or carrier</label>
+                    <select 
+                      id="logistics-carrier-field"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.8 text-xs focus:ring-1 focus:ring-indigo-300 focus:outline-none"
+                    >
+                      <option value="DHS Post Office">DHS Post Office (Simulated Ghana Post)</option>
+                      <option value="Deliver in Person">Interactive Meetup (Hand Delivery)</option>
+                      <option value="FediEX Express Courier">FediEX Express Courier (Simulated Courier)</option>
+                      <option value="Voucher Code Direct SMS">Digital Gift Card Voucher code (Direct SMS/Inbox)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[9.5px] font-bold text-slate-450 mb-1">Interactive Wrap Styling theme</label>
+                    <select 
+                      id="wrap-styling-field"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.8 text-xs focus:ring-1 focus:ring-indigo-300 focus:outline-none font-semibold"
+                    >
+                      <option value="Cosmic Slate Simple">Cosmic Slate Simple Design Theme</option>
+                      <option value="Lavender Velvet Knot">Lavender Velvet Knot (High Craft)</option>
+                      <option value="Yellow Solar Orbit Sparkle">Yellow Solar Orbit Sparkle (Warm tone)</option>
+                      <option value="Retro Polka Dot Cardboard">Retro Polka Dot Cardboard Wrap</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="text-[9.5px] text-slate-450 italic mt-1 leading-normal font-sans">
+                  * Submitting claims simulated bookings: It reserves the selection, locks claims, and updates milestones.
+                </div>
+
+                <div className="flex gap-2 pt-1 font-sans">
+                  <button
+                    onClick={() => {
+                      const carrier = (document.getElementById("logistics-carrier-field") as HTMLSelectElement)?.value || "Meetup Delivery";
+                      const wrap = (document.getElementById("wrap-styling-field") as HTMLSelectElement)?.value || "Simple Slate";
+                      
+                      // Claim in state!
+                      const friendId = selectedGiftItem.friendId;
+                      const wishId = selectedGiftItem.wishId;
+                      
+                      const updated = friends.map(f => {
+                        if (f.id === friendId) {
+                          return {
+                            ...f,
+                            wishlist: f.wishlist.map(wish => {
+                              if (wish.id === wishId) {
+                                return { ...wish, isClaimed: true };
+                              }
+                              return wish;
+                            })
+                          };
+                        }
+                        return f;
+                      });
+
+                      setFriends(updated);
+                      setShowSendGiftModal(false);
+                      triggerToast("Gift Selection Dispatched! 🚢", `Successfully purchased ${selectedGiftItem.title} wrapped with ${wrap}! Sent via ${carrier}.`);
+                      appendLog(`🚢 Sandbox Ship: Ordered "${selectedGiftItem.title}" (${selectedGiftItem.price}) for ${selectedGiftItem.friendName}. Shipment logistics set to ${carrier} using ${wrap}.`);
+                      unlockAchievement("Generous Giver", "alex");
+                    }}
+                    className="flex-1 py-2.5 bg-indigo-650 hover:bg-indigo-505 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs rounded-xl shadow-lg shadow-indigo-150 cursor-pointer text-center"
+                  >
+                    Confirm Dispatch 🎁
+                  </button>
+                  <button
+                    onClick={() => setShowSendGiftModal(false)}
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl cursor-pointer text-center"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+
+          {/* MODAL DIALOG POPUP: Select Relationship on Connection */}
+          {showRelationModal && pendingConnectProfile && (
+            <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full border border-slate-150 shadow-2xl relative text-left"
+                id="relation-chooser-dialog-card"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">Define Relationship Accent</h3>
+                    <p className="text-xs text-slate-500">How do you know {pendingConnectProfile.name}?</p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+                  Establish a category for <strong>{pendingConnectProfile.name}</strong> to configure notifications and organize your deck, or configure it later yourself.
+                </p>
+
+                <div className="space-y-2">
+                  {[
+                    { type: "Best Friend", desc: "For priority locket view & immediate alerts" },
+                    { type: "College Buddy", desc: "For reunion updates and school ties" },
+                    { type: "Work Colleague", desc: "For synchronized professional calendars" },
+                    { type: "Family Relative", desc: "For core celebration alarms and card tags" },
+                    { type: "Gym Partner", desc: "For workout milestone syncing and health desires" }
+                  ].map(rel => (
+                    <button
+                      key={rel.type}
+                      onClick={() => handleConnectAndSave(rel.type)}
+                      className="w-full text-left p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-indigo-400 transition-all font-semibold text-xs flex justify-between items-center group cursor-pointer"
+                    >
+                      <div>
+                        <span className="text-slate-900 font-bold block">{rel.type}</span>
+                        <span className="text-[10px] text-slate-400 block font-normal">{rel.desc}</span>
+                      </div>
+                      <span className="text-[10px] text-indigo-500 font-bold opacity-0 group-hover:opacity-100 transition-opacity">Select &rarr;</span>
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={() => handleConnectAndSave("Configure Later")}
+                    className="w-full text-center py-2.5 rounded-xl text-xs font-black text-amber-700 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 transition-colors cursor-pointer mt-2"
+                  >
+                    Configure later yourself
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowRelationModal(false);
+                      setPendingConnectProfile(null);
+                    }}
+                    className="w-full text-center py-2 text-xs font-bold text-slate-400 hover:text-slate-650 transition-colors cursor-pointer"
+                  >
+                    Cancel Connection
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+
+          {/* SLIDING RIGHT-SIDE NOTIFICATION DRAWER */}
+          {showNotificationDrawer && (
+            <div className="fixed inset-0 z-50 flex justify-end">
+              {/* Backdrop */}
+              <div 
+                onClick={() => setShowNotificationDrawer(false)}
+                className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
+              />
+              
+              {/* Drawer Container */}
+              <motion.div
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="relative w-full max-w-sm h-full bg-white shadow-2xl border-l border-slate-100 p-6 flex flex-col text-left z-10"
+              >
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4 bg-slate-50 -mx-6 -mt-6 p-6">
+                  <div className="flex items-center gap-2">
+                    <Bell className="w-5 h-5 text-indigo-600" />
+                    <div>
+                      <h3 className="font-extrabold text-sm text-slate-900">Notifications Desk</h3>
+                      <p className="text-[10px] text-slate-500">Live birthday and wishlist updates</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setShowNotificationDrawer(false)}
+                    className="p-1 px-2 rounded-lg bg-slate-150 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Notifications list */}
+                <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                  {notifications.length === 0 ? (
+                    <div className="py-12 text-center text-slate-405">
+                      <Bell className="w-10 h-10 mx-auto text-slate-300 stroke-1 mb-2" />
+                      <p className="text-xs font-semibold">All caught up!</p>
+                      <p className="text-[10px] text-slate-400">Newly connected contacts' wishlist posts will register here.</p>
+                    </div>
+                  ) : (
+                    notifications.map(notif => (
+                      <div
+                        key={notif.id}
+                        onClick={() => {
+                          // Mark as read
+                          setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+                          if (notif.friendId) {
+                            setSelectedFriendId(notif.friendId);
+                            setActiveSection("registry");
+                            setRegistrySubTab("list");
+                          }
+                          setShowNotificationDrawer(false);
+                          triggerToast("Roster Selected", `Faceted view to target profile.`);
+                        }}
+                        className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative text-left leading-tight ${
+                          notif.isRead 
+                            ? "bg-white border-slate-150 hover:bg-slate-50 opacity-75" 
+                            : "bg-indigo-50/50 border-indigo-200 hover:border-indigo-400 shadow-xs"
+                        }`}
+                      >
+                        {!notif.isRead && (
+                          <span className="absolute top-3.5 right-3.5 w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+                        )}
+                        <span className="text-[11px] font-black text-indigo-950 uppercase block tracking-wider mb-1 flex items-center gap-1">
+                          {notif.type === "birthday_list_posted" ? "🎁 Wishlist alert" : "⚙️ System status"}
+                        </span>
+                        <p className="text-xs font-bold text-slate-800 leading-snug">{notif.title}</p>
+                        <p className="text-[11px] text-slate-500 mt-1 leading-normal">{notif.message}</p>
+                        <div className="flex items-center justify-between mt-2.5">
+                          <span className="text-[9px] font-mono font-bold text-indigo-500 uppercase tracking-wide bg-indigo-50 px-1.5 py-0.5 rounded">
+                            {notif.timestamp}
+                          </span>
+                          <span className="text-[10px] text-indigo-600 font-extrabold hover:underline">View Wishlist &rarr;</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 bg-slate-50 -mx-6 -mb-6 p-4 text-center">
+                  <button
+                    onClick={() => {
+                      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+                      triggerToast("Marked All as Read", "Archived active alert drawer inbox.");
+                    }}
+                    className="text-xs text-indigo-600 hover:underline font-extrabold"
+                  >
+                    Mark all as read
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* PRIMARY SUBCOL VIEWS PORTAL */}
+        <div className="flex-1 overflow-y-auto p-6 md:p-8" id="workspace-viewport">
+          
+          {/* ==================== SCREEN 1: EXECUTIVE COMMAND CENTER ==================== */}
+          {activeSection === "dashboard" && (
+            <div className="space-y-6" id="view-dashboard-hull">
+              {/* Top Greeting Message */}
+              <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-6 rounded-3xl text-left text-white shadow-xl relative overflow-hidden">
+                <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-indigo-500/10 to-transparent pointer-events-none" />
+                <h3 className="text-xl md:text-2xl font-black text-white">
+                  Salutations, {userSession ? userSession.name : "Alex Patel"}!
+                </h3>
+                <p className="text-xs text-indigo-200 mt-1.5 leading-relaxed max-w-xl font-sans">
+                  Welcome to your integrated birthday circle and wishlist scheduler workspace. We are monitoring <span className="font-bold text-white">{totalBuddiesCount} buddies</span>, with <span className="font-bold text-white">{claimedWishesCount} reserved target gifts</span>. Customize widgets below or trigger the AI assistant to fetch fresh suggestions.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button 
+                    onClick={() => { setActiveSection("registry"); setSelectedFriendId("taylor"); }}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-extrabold px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  >
+                    View Nearest List
+                  </button>
+                  <button 
+                    onClick={() => setActiveSection("ai-lab")}
+                    className="bg-white/10 hover:bg-white/20 text-indigo-100 text-[11px] font-extrabold px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Launch AI Suggestions Lab
+                  </button>
+                </div>
+              </div>
+
+              {/* ==================== UNIVERSAL SEARCH & DISCOVERY CENTER ==================== */}
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs text-left space-y-4" id="dashboard-discovery-deck">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                      <Search className="w-4 h-4" />
+                    </div>
+                    <h4 className="font-black text-sm text-slate-900">Sync &amp; Discover Celebrants</h4>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-sans">
+                    Search buddies, family, or colleagues by name, handle username, or hobby interest tags to register claims or inspect registries.
+                  </p>
+                </div>
+
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <Search className="h-4 w-4 text-slate-400" />
+                  </span>
+                  <input
+                    type="text"
+                    value={dashboardSearchQuery}
+                    onChange={(e) => setDashboardSearchQuery(e.target.value)}
+                    placeholder="Search by name, handle username (like @clara, david) or hobbies (like photography, vinyl)..."
+                    className="w-full bg-slate-50 hover:bg-slate-100/60 transition-colors focus:bg-white border border-slate-200 rounded-2xl pl-10 pr-10 py-3 text-xs focus:ring-2 focus:ring-indigo-100 focus:outline-[#818CF8]"
+                  />
+                  {dashboardSearchQuery && (
+                    <button
+                      onClick={() => setDashboardSearchQuery("")}
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-650 cursor-pointer"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Search query matches box */}
+                <AnimatePresence>
+                  {dashboardSearchQuery.trim().length > 0 ? (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-3 pt-1"
+                    >
+                      <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                        Immediate Simulation Matches ({MOCK_EXTERNAL_PROFILES.filter(p => p.name.toLowerCase().includes(dashboardSearchQuery.toLowerCase()) || p.username.toLowerCase().includes(dashboardSearchQuery.toLowerCase()) || p.interests.some(i => i.toLowerCase().includes(dashboardSearchQuery.toLowerCase()))).length + friends.filter(f => f.id !== "alex" && f.name.toLowerCase().includes(dashboardSearchQuery.toLowerCase())).length} accounts)
+                      </div>
+
+                      {(() => {
+                        const query = dashboardSearchQuery.toLowerCase().trim();
+                        
+                        // Filter external mock database profiles
+                        const matchExternal = MOCK_EXTERNAL_PROFILES.filter(p => 
+                          p.name.toLowerCase().includes(query) ||
+                          p.username.toLowerCase().includes(query) ||
+                          p.interests.some(i => i.toLowerCase().includes(query))
+                        );
+
+                        // Filter existing circle friends (excluding self)
+                        const matchCircle = friends.filter(f => 
+                          f.id !== "alex" && (
+                            f.name.toLowerCase().includes(query) ||
+                            f.interests.some(i => i.toLowerCase().includes(query))
+                          )
+                        );
+
+                        if (matchExternal.length === 0 && matchCircle.length === 0) {
+                          return (
+                            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center text-xs text-slate-400 font-semibold py-9">
+                              No matching celebrity accounts or friends found. Try typing another tag like &#39;baking&#39;, &#39;coffee&#39;, &#39;david&#39; or &#39;clara&#39;.
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {/* Match existing circle buds */}
+                            {matchCircle.map((fc) => {
+                              const remaining = calculateDaysRemaining(fc.birthday);
+                              return (
+                                <div
+                                  key={`circle-${fc.id}`}
+                                  className="bg-white p-3.5 rounded-2xl border border-slate-250 hover:border-indigo-250 hover:shadow-2xs transition-all text-left flex items-start gap-3 relative overflow-hidden"
+                                >
+                                  <div className="absolute top-2 right-2 bg-indigo-50 text-[9px] px-1.5 py-0.5 rounded text-indigo-600 font-mono font-bold uppercase tracking-wider scale-95 border border-indigo-100">
+                                    In Circle 🤝
+                                  </div>
+                                  <div className={`w-9 h-9 rounded-xl ${fc.avatar} text-white font-serif font-black flex items-center justify-center shrink-0`}>
+                                    {fc.name.split(" ").map(n => n[0]).slice(0,2).join("")}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <h5 className="font-extrabold text-xs text-slate-900 leading-tight block">{fc.name}</h5>
+                                    <span className="text-[10px] text-zinc-400 font-semibold block">{fc.relationship} • Birthday in {remaining}d</span>
+                                    
+                                    {/* Hobbies list */}
+                                    <div className="flex flex-wrap gap-1 mt-1.5">
+                                      {fc.interests.slice(0, 3).map(interest => (
+                                        <span key={interest} className="text-[9px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded font-bold">
+                                          #{interest}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedFriendId(fc.id);
+                                      setActiveSection("registry");
+                                      setDashboardSearchQuery("");
+                                      window.scrollTo({ top: 0, behavior: "smooth" });
+                                    }}
+                                    className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-[9px] self-end px-2.5 py-1.5 rounded-xl cursor-pointer"
+                                  >
+                                    View Wishlist
+                                  </button>
+                                </div>
+                              );
+                            })}
+
+                            {/* Match external mock library */}
+                            {matchExternal.map((ext) => {
+                              // Check if already connected (has friend with this id)
+                              const isAlreadyConnected = friends.some(f => f.id === ext.id);
+                              if (isAlreadyConnected) return null; // handled in group above
+
+                              return (
+                                <div
+                                  key={`external-${ext.id}`}
+                                  className="bg-[#FAF9FF] p-3.5 rounded-2xl border border-indigo-100 hover:border-indigo-300 hover:shadow-2xs transition-all text-left flex items-start gap-3 relative"
+                                >
+                                  <div className="absolute top-2 right-2 bg-emerald-50 text-[9px] px-1.5 py-0.5 rounded text-emerald-600 font-mono font-bold uppercase tracking-wider scale-95 border border-emerald-100">
+                                    Discoverable 🌐
+                                  </div>
+                                  <div className={`w-9 h-9 rounded-xl ${ext.avatar} text-white font-serif font-black flex items-center justify-center shrink-0`}>
+                                    {ext.name.split(" ").map(n => n[0]).slice(0,2).join("")}
+                                  </div>
+                                  <div className="min-w-0 flex-1 flex flex-col justify-between h-full">
+                                    <div>
+                                      <h5 className="font-extrabold text-xs text-slate-900 leading-tight block">{ext.name}</h5>
+                                      <span className="text-[10px] text-indigo-500 font-bold block">@{ext.username}</span>
+                                    </div>
+                                    
+                                    {/* Hobbies list */}
+                                    <div className="flex flex-wrap gap-1 mt-1.5 leading-none">
+                                      {ext.interests.slice(0, 3).map(interest => (
+                                        <span key={interest} className="text-[9px] px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded font-extrabold">
+                                          #{interest}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      setPendingConnectProfile(ext);
+                                      setShowRelationModal(true);
+                                      setDashboardSearchQuery("");
+                                    }}
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[9px] self-end px-3 py-1.5 rounded-xl cursor-pointer shadow-sm active:scale-95 transition-all"
+                                  >
+                                    + Connect
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+              </div>
+
+              {/* Statistics Panel Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" id="dashboard-system-stats">
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 text-left">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Buddies Active</span>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <span className="text-2xl font-black text-slate-900">{totalBuddiesCount}</span>
+                    <span className="text-xs font-semibold text-indigo-600 font-mono">Synced Profiles</span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 text-left">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Gifts Registry Status</span>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <span className="text-2xl font-black text-slate-900">{claimedWishesCount}/{totalWishesCount}</span>
+                    <span className="text-xs font-semibold text-emerald-600 font-mono">
+                      {totalWishesCount > 0 ? Math.round((claimedWishesCount / totalWishesCount) * 100) : 0}% Claimed
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 text-left">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Landmark System Level</span>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <span className="text-2xl font-black text-slate-900">Lvl {unlockLevel}</span>
+                    <span className="text-xs font-semibold text-amber-600 font-mono">Gift Master</span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 text-left">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Soonest Countdown</span>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <span className="text-2xl font-black text-rose-600">{nextTargetDays}d</span>
+                    <span className="text-xs font-semibold text-slate-500 truncate">For {nextTarget.name.split(" ")[0]}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ==================== 📅 30-DAY UPCOMING BIRTHDAYS FEED & GIFT SUGGESTIONS ==================== */}
+              <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-xs text-left space-y-5" id="dashboard-upcoming-feed-deck">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                  <div>
+                    <h4 className="font-black text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <Sparkles className="w-4.5 h-4.5 text-indigo-600 animate-pulse" /> 
+                      <span>30-Day Birthdays Feed &amp; Gift Suggestions</span>
+                    </h4>
+                    <p className="text-xs text-slate-500 font-sans mt-0.5">
+                      Monitor upcoming landmark days due in the next 30 days, dispatch quick WhatsApp/Snapchat greetings, and trigger gift orders.
+                    </p>
+                  </div>
+                  <div className="bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse block"></span>
+                    <span className="text-[10px] font-black text-indigo-900 font-mono uppercase tracking-wide">
+                      {friends.filter(f => f.id !== "alex" && calculateDaysRemaining(f.birthday) <= 30).length} Celebrants Match
+                    </span>
+                  </div>
+                </div>
+
+                {/* Grid content inside upcoming feed */}
+                {friends.filter(f => f.id !== "alex" && calculateDaysRemaining(f.birthday) <= 30).length === 0 ? (
+                  <div className="py-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <span className="text-3xl">🎉</span>
+                    <p className="text-xs font-bold text-slate-600 mt-2">All Quiet on the Landmark Desk</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">There are no companion birthdays occurring in the next 30 days. Add more buddies to see them live here!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {friends
+                      .filter(f => f.id !== "alex" && calculateDaysRemaining(f.birthday) <= 30)
+                      .map(f => ({ ...f, daysLeft: calculateDaysRemaining(f.birthday) }))
+                      .sort((a, b) => a.daysLeft - b.daysLeft)
+                      .map(friend => {
+                        const snapHandle = friend.snapchat || "friend_snap";
+                        const phoneNo = friend.phone || "+233241234567";
+                        const shareMsg = `Happy Birthday, ${friend.name}! 🎉 Wishing you a spectacular year ahead! Let's celebrate. Check out your wishlist claim on BloomBirth.`;
+                        
+                        return (
+                          <div 
+                            key={friend.id}
+                            className="bg-slate-50/50 hover:bg-slate-50 border border-slate-150 rounded-2xl p-5 transition-all text-left space-y-4"
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                              {/* Friend Profile and Countdown info */}
+                              <div className="flex items-center gap-3.5">
+                                <div className={`w-11 h-11 rounded-xl ${friend.avatar} text-white flex items-center justify-center font-black text-sm capitalize`}>
+                                  {friend.name.split(" ").map(n => n[0]).slice(0, 2).join("")}
+                                </div>
+                                <div>
+                                  <h5 className="font-extrabold text-sm text-slate-900">{friend.name}</h5>
+                                  <div className="flex items-center gap-2 text-[10px] text-slate-400 font-semibold mt-0.5">
+                                    <span className="bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded uppercase text-[9px]">{friend.relationship}</span>
+                                    <span>•</span>
+                                    <span>Birthday: {formatBirthdayDate(friend.birthday)} ({friend.birthday})</span>
+                                    <span>•</span>
+                                    <span>Turns {friend.age}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Alert status and Direct Social shares */}
+                              <div className="flex flex-wrap items-center gap-2">
+                                {/* Countdown Badge */}
+                                <div className="bg-rose-50 border border-rose-250 text-rose-600 px-3 py-1.5 rounded-xl text-xs font-extrabold">
+                                  🔔 In {friend.daysLeft} Days
+                                </div>
+
+                                {/* WhatsApp Share link */}
+                                <a
+                                  href={`https://wa.me/${phoneNo.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(shareMsg)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[11px] font-bold flex items-center gap-1.5 shadow-md shadow-emerald-100 transition-all cursor-pointer active:scale-95"
+                                  title={`Send WhatsApp message greeting to ${friend.name}`}
+                                >
+                                  <Phone className="w-3.5 h-3.5" />
+                                  <span>WhatsApp Msg</span>
+                                </a>
+
+                                {/* Snapchat Copy & Deep link button */}
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(`Happy Birthday, ${friend.name}! 🎉 Wishing you the best year ahead! Check out your wishlist on BloomBirth.`);
+                                    triggerToast("Snapchat Clipboard Copied! 👻", `Copied Snapchat handle: @${snapHandle} to your clipboard!`);
+                                    appendLog(`👻 Opened Snapchat Deep link for friend: @${snapHandle}`);
+                                    window.open(`https://snapchat.com/add/${snapHandle}`, "_blank");
+                                  }}
+                                  className="px-3 py-1.5 bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-xl text-[11px] font-black flex items-center gap-1.5 shadow-md shadow-amber-100 transition-all cursor-pointer active:scale-95"
+                                  title={`Send Snapchat handle greeting to @${snapHandle}`}
+                                >
+                                  <span className="text-xs">👻</span>
+                                  <span>Snapchat</span>
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Dynamic Wishlist Gift Suggestion Row for this friend */}
+                            <div className="bg-white p-4.5 rounded-xl border border-slate-150 space-y-3">
+                              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                <Gift className="w-3.5 h-3.5 text-indigo-550 text-indigo-500" />
+                                <span>🎁 Suggested Desires from Wishlist</span>
+                              </span>
+                              
+                              {friend.wishlist && friend.wishlist.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                  {friend.wishlist.map(wish => (
+                                    <div 
+                                      key={wish.id}
+                                      className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between"
+                                    >
+                                      <div>
+                                        <h6 className="font-bold text-xs text-slate-800 line-clamp-1">{wish.title}</h6>
+                                        <div className="flex items-center gap-2 mt-1">
+                                          <span className="text-xs font-black text-emerald-600">{wish.price}</span>
+                                          {wish.isClaimed && (
+                                            <span className="text-[9px] bg-indigo-50 text-indigo-650 font-extrabold px-1.5 py-0.5 rounded">
+                                              Reserved
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Action button */}
+                                      <div className="pt-3 border-t mt-3 flex items-center justify-between gap-2 border-slate-100">
+                                        {wish.url && (
+                                          <a 
+                                            href={wish.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-[10px] text-slate-450 hover:text-indigo-600 transition font-semibold"
+                                          >
+                                            Store Ref
+                                          </a>
+                                        )}
+                                        
+                                        <button
+                                          onClick={() => {
+                                            setSelectedGiftItem({
+                                              friendId: friend.id,
+                                              wishId: wish.id,
+                                              title: wish.title,
+                                              price: wish.price,
+                                              friendName: friend.name
+                                            });
+                                            setShowSendGiftModal(true);
+                                          }}
+                                          className={`px-3 py-1.2 rounded-lg text-[10px] font-bold transition-all ml-auto ${
+                                            wish.isClaimed 
+                                              ? "bg-slate-100 hover:bg-slate-150 text-slate-605 text-slate-600" 
+                                              : "bg-indigo-650 bg-indigo-600 hover:bg-indigo-700 text-white"
+                                          }`}
+                                        >
+                                          {wish.isClaimed ? "Gifting Info 🎁" : "Send a Gift 🎁"}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-400 italic">
+                                  No specific wishlist items loaded yet. Synced circles take ~12s to automatically publish mock items.
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+
+              {/* Main split row layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" id="dashboard-desk-row">
+                
+                {/* Nearest Birthday Party Spotlight detail */}
+                <div className="lg:col-span-4 bg-gradient-to-b from-amber-50 to-amber-100/50 rounded-3xl p-6 border border-amber-200 text-left flex flex-col justify-between min-h-[340px]" id="spotlight-card">
+                  <div>
+                    <span className="bg-amber-500 text-slate-950 text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full inline-block">
+                      ⏰ Next Spotlight Circle
+                    </span>
+                    
+                    <div className="mt-5 flex gap-3.5 items-center">
+                      <div className={`w-12 h-12 rounded-2xl ${nextTarget.avatar} text-white font-serif flex items-center justify-center font-black text-lg shadow-sm border border-white/20`}>
+                        {nextTarget.name.split(" ").map(n => n[0]).join("")}
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-[17px] text-slate-900 tracking-tight leading-tight">{nextTarget.name}</h4>
+                        <p className="text-xs text-slate-500 font-semibold">{nextTarget.relationship} • Turning {nextTarget.age}</p>
+                      </div>
+                    </div>
+
+                    <div className="my-5">
+                      <h2 className="text-5xl font-black text-amber-600 tracking-tighter">{nextTargetDays} Days</h2>
+                      <p className="text-xs text-slate-600 font-semibold mt-1">Calendar date: <span className="font-extrabold">{formatBirthdayDate(nextTarget.birthday)}</span> ({nextTarget.birthday})</p>
+                    </div>
+
+                    <div className="bg-white/80 p-3 rounded-2xl border border-amber-300 text-[11px] font-medium leading-relaxed">
+                      <span className="font-extrabold text-amber-900 flex items-center gap-1 mb-1">
+                        <Gift className="w-3.5 h-3.5 text-amber-600" /> Wishlist Target Wants
+                      </span>
+                      {nextTarget.wishlist && nextTarget.wishlist.length > 0 ? (
+                        <p className="font-bold text-slate-800 truncate">🎁 {nextTarget.wishlist[0].title} ({nextTarget.wishlist[0].price})</p>
+                      ) : (
+                        <p className="text-slate-500 italic">No desires listed yet. Generate AI suggestions below.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedFriendId(nextTarget.id);
+                        setActiveSection("registry");
+                      }}
+                      className="flex-1 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold text-center transition-colors"
+                    >
+                      Open Registry Profile
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedFriendId(nextTarget.id);
+                        setActiveSection("ai-lab");
+                      }}
+                      className="p-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl"
+                      title="Generate Gift Recommendations"
+                    >
+                      <Wand2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Calendar Schedule list chronological */}
+                <div className="lg:col-span-5 bg-white rounded-3xl p-6 border border-slate-200 text-left flex flex-col justify-between" id="calendar-board">
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="font-extrabold text-sm text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+                        <Calendar className="w-4 h-4 text-slate-500" /> Circle Birthday Calendars
+                      </h4>
+                      <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">Chronological</span>
+                    </div>
+
+                    <div className="space-y-2 max-h-[290px] overflow-y-auto pr-1">
+                      {sortedUpcoming.map((friend) => {
+                        const days = calculateDaysRemaining(friend.birthday);
+                        const isAlex = friend.id === "alex";
+
+                        return (
+                          <div 
+                            key={friend.id}
+                            className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${
+                              friend.id === nextTarget.id 
+                                ? "bg-amber-50/50 border-amber-300"
+                                : "bg-slate-50/50 border-slate-100 hover:bg-slate-150"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className={`w-8 h-8 rounded-xl ${friend.avatar} text-white flex items-center justify-center font-bold text-xs`}>
+                                {friend.name.split(" ").map(n => n[0]).join("")}
+                              </span>
+                              <div>
+                                <span className="font-bold text-xs text-slate-850 block">{friend.name}</span>
+                                <span className="text-[10px] text-slate-400 block">{friend.relationship} • Turns {friend.age}</span>
+                              </div>
+                            </div>
+
+                            <div className="text-right">
+                              <span className="font-black text-xs text-indigo-700 block">
+                                {isAlex ? "🎁 (You)" : `In ${days} Days`}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-semibold block">{formatBirthdayDate(friend.birthday)}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 text-center">
+                    <button 
+                      onClick={() => setActiveSection("registry")}
+                      className="text-xs text-indigo-600 hover:underline font-extrabold inline-flex items-center gap-1"
+                    >
+                      <span>Manage buddies directory cards</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Live Activity Records Ledger */}
+                <div className="lg:col-span-3 bg-slate-900 rounded-3xl p-5 text-left border border-slate-800 flex flex-col justify-between" id="logs-overview">
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-bold text-xs text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                        <Activity className="w-3.5 h-3.5 text-indigo-400" /> Operational Log Feed
+                      </h4>
+                      <button 
+                        onClick={handleClearLogs}
+                        className="text-[9px] text-zinc-500 hover:text-white"
+                      >
+                        Clear
+                      </button>
+                    </div>
+
+                    <div className="space-y-2 font-mono text-[9.5px] text-indigo-300 max-h-[290px] overflow-y-auto bg-slate-950 p-3 rounded-2xl border border-slate-850">
+                      {logs.slice(0, 8).map((log, index) => (
+                        <div key={index} className="border-b border-slate-900 pb-1.5 last:border-0 leading-relaxed text-slate-300 break-words">
+                          {log}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <p className="text-[9px] text-slate-500 font-semibold text-center mt-3 leading-tight">
+                    Audit log auto-registers widget deployments and claim commitments made on local profiles.
+                  </p>
+                </div>
+
+              </div>
+
+              {/* ==================== MONTHLY CALENDAR VIEW SECTION ==================== */}
+              <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-xs text-left space-y-5" id="dashboard-monthly-calendar">
+                
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                        <Calendar className="w-4.5 h-4.5" />
+                      </div>
+                      <h4 className="font-extrabold text-sm text-slate-900">Monthly Celebrations Planner</h4>
+                    </div>
+                    <p className="text-[11px] text-slate-500 font-sans">
+                      Visualize companion birthdates in a grid format. Navigate months freely and click any day to inspect specific companion targets.
+                    </p>
+                  </div>
+
+                  {/* Navigation controls */}
+                  <div className="flex items-center gap-2 self-start sm:self-center bg-slate-50 p-1.5 rounded-xl border border-slate-200/65">
+                    <button
+                      onClick={() => {
+                        setCalendarMonth(prev => {
+                          if (prev === 0) {
+                            setCalendarYear(y => y - 1);
+                            return 11;
+                          }
+                          return prev - 1;
+                        });
+                      }}
+                      className="p-1.5 bg-white rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
+                      title="Previous Month"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+
+                    <span className="text-xs font-black text-slate-800 min-w-[100px] text-center font-sans tracking-tight">
+                      {[
+                        "January", "February", "March", "April", "May", "June",
+                        "July", "August", "September", "October", "November", "December"
+                      ][calendarMonth]} {calendarYear}
+                    </span>
+
+                    <button
+                      onClick={() => {
+                        setCalendarMonth(prev => {
+                          if (prev === 11) {
+                            setCalendarYear(y => y + 1);
+                            return 0;
+                          }
+                          return prev + 1;
+                        });
+                      }}
+                      className="p-1.5 bg-white rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-950 cursor-pointer transition-colors"
+                      title="Next Month"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+
+                    {/* Quick Reset back to Benchmark Today - June 2026 */}
+                    {(calendarYear !== 2026 || calendarMonth !== 5) && (
+                      <button
+                        onClick={() => {
+                          setCalendarYear(2026);
+                          setCalendarMonth(5);
+                        }}
+                        className="ml-1 px-2.5 py-1 text-[9.5px] font-black text-indigo-600 bg-indigo-50 border border-indigo-150 rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
+                      >
+                        Reset To June
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-1.5 sm:gap-2.5">
+                  {/* Weekday Labels */}
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((wd) => (
+                    <div key={wd} className="text-center text-[10px] uppercase font-extrabold text-slate-400 py-1 font-mono tracking-wider">
+                      {wd}
+                    </div>
+                  ))}
+
+                  {/* Days */}
+                  {(() => {
+                    const cells = [];
+                    const firstDay = new Date(calendarYear, calendarMonth, 1).getDay();
+                    const numDays = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+                    const prevNumDays = new Date(calendarYear, calendarMonth, 0).getDate();
+
+                    // Prepend preceding month padded days (using standard grey text / unclickable)
+                    for (let i = firstDay - 1; i >= 0; i--) {
+                      const d = prevNumDays - i;
+                      cells.push({
+                        dayNumber: d,
+                        isCurrentMonth: false,
+                        monthIndex: calendarMonth === 0 ? 11 : calendarMonth - 1,
+                        yearValue: calendarMonth === 0 ? calendarYear - 1 : calendarYear,
+                      });
+                    }
+
+                    // Add active calendar days
+                    for (let d = 1; d <= numDays; d++) {
+                      cells.push({
+                        dayNumber: d,
+                        isCurrentMonth: true,
+                        monthIndex: calendarMonth,
+                        yearValue: calendarYear,
+                      });
+                    }
+
+                    // Pad after calendar index to complete regular weeks
+                    const totalCellsNeeded = 42;
+                    const nextMonthPaddingCount = totalCellsNeeded - cells.length;
+                    for (let d = 1; d <= nextMonthPaddingCount; d++) {
+                      cells.push({
+                        dayNumber: d,
+                        isCurrentMonth: false,
+                        monthIndex: calendarMonth === 11 ? 0 : calendarMonth + 1,
+                        yearValue: calendarMonth === 11 ? calendarYear + 1 : calendarYear,
+                      });
+                    }
+
+                    return cells.map((cell, idx) => {
+                      const isCurrent = cell.isCurrentMonth;
+                      const d = cell.dayNumber;
+                      const m = cell.monthIndex;
+                      const y = cell.yearValue;
+
+                      // Check benchmark clock today matching: June 3, 2026
+                      const isTodayCell = y === 2026 && m === 5 && d === 3 && isCurrent;
+
+                      // Fetch matching celebrants
+                      const celCount = isCurrent ? getCelebrants(m, d) : [];
+                      const hasCelebrants = celCount.length > 0;
+
+                      // Selection active checking
+                      const isSelected = selectedCalendarDay && selectedCalendarDay.day === d && selectedCalendarDay.month === m && selectedCalendarDay.year === y && isCurrent;
+
+                      return (
+                        <div
+                          key={idx}
+                          role="button"
+                          tabIndex={isCurrent ? 0 : -1}
+                          onClick={() => {
+                            if (isCurrent) {
+                              setSelectedCalendarDay({ day: d, month: m, year: y });
+                            }
+                          }}
+                          className={`min-h-[55px] sm:min-h-[75px] p-2 rounded-2xl border transition-all text-left flex flex-col justify-between ${
+                            isCurrent 
+                              ? "bg-white border-slate-150 hover:bg-slate-50/50 hover:border-slate-250 cursor-pointer" 
+                              : "bg-slate-50/30 border-transparent text-slate-350 pointer-events-none"
+                          } ${
+                            isTodayCell ? "ring-2 ring-indigo-500 ring-offset-2 ring-offset-white" : ""
+                          } ${
+                            isSelected ? "bg-indigo-50/10 border-indigo-500 ring-2 ring-indigo-500/20" : ""
+                          } ${
+                            hasCelebrants && !isSelected ? "bg-amber-50/30 border-amber-250/60" : ""
+                          }`}
+                        >
+                          {/* Inner Day Numerals and Micro Badge Indicators */}
+                          <div className="flex items-center justify-between">
+                            <span className={`text-[10.5px] font-black ${
+                              isCurrent 
+                                ? isTodayCell 
+                                  ? "bg-indigo-600 text-white w-5 h-5 rounded-lg flex items-center justify-center font-mono font-bold shrink-0 shadow-sm" 
+                                  : isSelected
+                                    ? "text-indigo-600"
+                                    : "text-slate-800"
+                                : "text-slate-300"
+                            }`}>
+                              {d}
+                            </span>
+
+                            {isTodayCell && (
+                              <span className="text-[7px] uppercase font-black tracking-tight text-indigo-500 font-mono hidden sm:inline bg-indigo-50 border border-indigo-150 px-1 py-0.2 rounded leading-none select-none">
+                                Now
+                              </span>
+                            )}
+
+                            {hasCelebrants && (
+                              <span className="text-[7.5px] uppercase font-black text-amber-700 bg-amber-55/70 border border-amber-200/50 px-1 py-0.2 rounded font-sans leading-none">
+                                🎂 {celCount.length}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Avatar Micro Badging Row */}
+                          <div className="mt-1 flex -space-x-1 sm:-space-x-1.5 overflow-hidden justify-items-start leading-none mb-1">
+                            {hasCelebrants && celCount.slice(0, 3).map((friend) => (
+                              <button
+                                key={friend.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedFriendId(friend.id);
+                                  setActiveSection("registry");
+                                  window.scrollTo({ top: 0, behavior: "smooth" });
+                                }}
+                                className={`w-4.5 h-4.5 sm:w-6 sm:h-6 rounded-md border border-white text-white text-[8px] font-bold flex items-center justify-center shrink-0 hover:scale-110 active:scale-90 transition-transform cursor-pointer relative z-1 ${friend.avatar}`}
+                                title={`${friend.name} (${friend.relationship}) — Click to jump to details`}
+                              >
+                                {friend.name.split(" ").map(n => n[0]).slice(0,2).join("")}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+
+                {/* Celebrants ledger for selected day */}
+                <AnimatePresence>
+                  {(() => {
+                    const sel = selectedCalendarDay;
+                    const celebrants = getCelebrants(sel.month, sel.day);
+
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-slate-50 border border-slate-200 rounded-2xl p-4.5 text-left space-y-3"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-200/60">
+                          <div>
+                            <h5 className="font-extrabold text-xs text-slate-800">
+                              Celebration List: {[
+                                "January", "February", "March", "April", "May", "June",
+                                "July", "August", "September", "October", "November", "December"
+                              ][sel.month]} {sel.day}, {sel.year}
+                            </h5>
+                            <p className="text-[10px] text-slate-500 font-sans mt-0.5">
+                              {celebrants.length === 0 
+                                ? "No birthday events are scheduled on this date in your circle." 
+                                : `We discovered ${celebrants.length} companion celebrants matching this calendar day.`}
+                            </p>
+                          </div>
+
+                          {celebrants.length > 0 && (
+                            <span className="text-[9px] font-extrabold text-pink-600 bg-pink-50 border border-pink-200 px-2.5 py-0.5 rounded-full select-none shrink-0 self-start sm:self-center">
+                              🎯 Celebration Target Detected
+                            </span>
+                          )}
+                        </div>
+
+                        {celebrants.length === 0 ? (
+                          <div className="text-center py-4 bg-white/40 border border-dashed border-slate-200 rounded-xl">
+                            <p className="text-xs text-slate-400 italic">No birthdays on this day. Tap any day with a 🎂 icon to see birthday companion details.</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-1">
+                            {celebrants.map((f) => {
+                              const days = calculateDaysRemaining(f.birthday);
+                              const isAlex = f.id === "alex";
+
+                              return (
+                                <div
+                                  key={f.id}
+                                  className="p-3 bg-white border border-slate-150 rounded-2xl flex items-center justify-between gap-3 text-left hover:shadow-2xs transition-all"
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-[11px] text-white shrink-0 ${f.avatar}`}>
+                                      {f.name.split(" ").map(n => n[0]).join("")}
+                                    </span>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className="text-xs font-black text-slate-900 truncate leading-tight block">{f.name}</span>
+                                        <span className="text-[9px] shrink-0 font-bold px-1.5 py-0.2 bg-slate-100 border border-slate-200 rounded text-slate-500 uppercase">
+                                          {f.relationship}
+                                        </span>
+                                      </div>
+                                      <span className="text-[10px] text-slate-400 block mt-0.5 font-semibold">🍰 Birthday: {formatBirthdayDate(f.birthday)} (Turning {f.age})</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="text-right shrink-0 flex items-center gap-2">
+                                    <span className="text-[10px] font-extrabold text-indigo-600 font-mono block">
+                                      {isAlex ? "🎁 (You)" : `In ${days}d`}
+                                    </span>
+                                    <button
+                                      onClick={() => {
+                                        setSelectedFriendId(f.id);
+                                        setActiveSection("registry");
+                                        window.scrollTo({ top: 0, behavior: "smooth" });
+                                      }}
+                                      className="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-[9.5px] px-2.5 py-1.2 rounded-lg transition-colors cursor-pointer shadow-sm active:scale-95"
+                                    >
+                                      Wishlist
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </motion.div>
+                    );
+                  })()}
+                </AnimatePresence>
+
+              </div>
+
+            </div>
+          )}
+
+          {/* ==================== SCREEN 2: BUDDIES REGISTRY CRM ==================== */}
+          {activeSection === "registry" && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-left" id="view-registry-hull">
+              {/* Left Column (SPAN 5) - Switchable between Circles and Connect/Import */}
+              <div className="lg:col-span-5 space-y-4">
+                
+                {/* Visual Pill Segmented Sub-tab switcher */}
+                <div className="flex bg-slate-200/80 p-1 rounded-2xl w-full border border-slate-300/40 shadow-xs" id="registry-segmented-tabs">
+                  <button
+                    onClick={() => setRegistrySubTab("list")}
+                    className={`flex-1 py-2 text-xs font-black rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      registrySubTab === "list"
+                        ? "bg-white text-slate-900 shadow-md shadow-slate-350/50"
+                        : "text-slate-550 hover:text-slate-900"
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Roster Circles</span>
+                  </button>
+                  <button
+                    onClick={() => setRegistrySubTab("connect")}
+                    className={`flex-1 py-2 text-xs font-black rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 relative ${
+                      registrySubTab === "connect"
+                        ? "bg-white text-indigo-950 shadow-md shadow-slate-350/50"
+                        : "text-slate-550 hover:text-indigo-900"
+                    }`}
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>Connect &amp; Import</span>
+                    {/* Pulsing indicator to grab attention about external contacts sync */}
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-ping absolute right-3 top-3" />
+                  </button>
+                </div>
+
+                {/* --- TAB A: MY CURRENT ROSTER CIRCLES (ORIGINAL LIST VIEW) --- */}
+                {registrySubTab === "list" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-4"
+                  >
+                    <div className="bg-white rounded-[2rem] border border-slate-200 p-5 shadow-xs">
+                      <h4 className="font-extrabold text-xs text-slate-800 mb-3 uppercase tracking-wider">Search Directories</h4>
+                      
+                      {/* Search Bar */}
+                      <div className="relative mb-4">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                        <input
+                          type="text"
+                          placeholder="Search companions by names or tags..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9.5 pr-3 py-2 text-xs focus:ring-2 focus:outline-none"
+                        />
+                      </div>
+
+                      {/* Relationship category filters */}
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Category Filter</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {["All", "Best Friend", "College Buddy", "Work Colleague", "Family Relative", "Gym Partner", "Configure Later"].map(cat => (
+                          <button
+                            key={cat}
+                            onClick={() => setFilterRelationship(cat)}
+                            className={`px-2.5 py-1 rounded-lg text-[10.5px] font-extrabold transition-all border ${
+                              filterRelationship === cat
+                                ? "bg-indigo-600 border-indigo-600 text-white"
+                                : "bg-slate-50 border-slate-200 text-slate-650 hover:bg-slate-100"
+                            }`}
+                          >
+                            {cat === "Configure Later" ? "Unconfigured ⚠️" : cat}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Buddies Directory Card List */}
+                    <div className="bg-white rounded-[2rem] border border-slate-200 p-5 shadow-xs">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Buddies Matches ({getFilteredFriends().length})</span>
+                        <button 
+                          onClick={() => setShowAddProfile(true)}
+                          className="text-[11px] text-indigo-600 hover:underline font-extrabold"
+                        >
+                          Add Custom Buddy +
+                        </button>
+                      </div>
+
+                      <div className="space-y-2 max-h-[390px] overflow-y-auto pr-1">
+                        {getFilteredFriends().length === 0 ? (
+                          <div className="py-8 text-center text-slate-400">
+                            <Search className="w-8 h-8 text-slate-300 mx-auto stroke-1" />
+                            <p className="text-xs font-semibold mt-1">No matching roster items</p>
+                          </div>
+                        ) : (
+                          getFilteredFriends().map(friend => {
+                            const days = calculateDaysRemaining(friend.birthday);
+                            const isSel = friend.id === selectedFriendId;
+                            const isSelf = friend.id === "alex";
+
+                            return (
+                              <div
+                                key={friend.id}
+                                onClick={() => setSelectedFriendId(friend.id)}
+                                className={`w-full p-3 rounded-2xl border text-left flex items-center justify-between cursor-pointer transition-all duration-200 ${
+                                  isSel
+                                    ? "bg-indigo-600 border-indigo-600 text-white shadow-md"
+                                    : "bg-slate-50/50 border-slate-100 hover:bg-slate-50 hover:border-slate-200"
+                                }`}
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <span className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs text-white ${friend.avatar}`}>
+                                    {friend.name.split(" ").map(n => n[0]).join("")}
+                                  </span>
+                                  <div className="min-w-0">
+                                    <span className={`text-xs font-bold block truncate ${isSel ? "text-white" : "text-slate-800"}`}>
+                                      {friend.name}
+                                    </span>
+                                    <span className={`text-[10px] font-semibold block ${isSel ? "text-indigo-200" : "text-slate-500"}`}>
+                                      {friend.relationship === "Configure Later" ? "⚠️ Configure Relation" : `${friend.relationship} • Turns ${friend.age}`}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="text-right shrink-0">
+                                  <span className={`text-[10px] font-black block ${isSel ? "text-white" : "text-indigo-600"}`}>
+                                    {isSelf ? "🎁 You" : `In ${days} Days`}
+                                  </span>
+                                  <span className={`text-[9px] block ${isSel ? "text-indigo-200" : "text-slate-400"}`}>
+                                    {formatBirthdayDate(friend.birthday)}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* --- TAB B: CONNECT & IMPORT HUB (ADDRESS BOOK & USERNAME LOOKUP) --- */}
+                {registrySubTab === "connect" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-4"
+                  >
+                    <div className="bg-white rounded-[2rem] border border-slate-200 p-5 shadow-xs text-left">
+                      <div className="flex items-center gap-2 mb-3.5 border-b border-slate-100 pb-2 bg-slate-50/40 p-2 rounded-xl">
+                        <UserPlus className="w-4 h-4 text-indigo-600" />
+                        <div>
+                          <h4 className="font-extrabold text-sm text-slate-855">Connect New Companion</h4>
+                          <p className="text-[10px] text-slate-400">Add from Address Book or lookup by Handle</p>
+                        </div>
+                      </div>
+
+                      {/* Pill Method selector */}
+                      <div className="flex bg-slate-100 p-1 rounded-xl mb-4 text-xs font-bold font-sans">
+                        <button
+                          onClick={() => setConnectMethod("contacts")}
+                          className={`flex-1 py-1.5 rounded-lg transition-colors cursor-pointer text-center ${
+                            connectMethod === "contacts"
+                              ? "bg-indigo-600 text-white"
+                              : "text-slate-505 hover:text-slate-800"
+                          }`}
+                        >
+                          Contacts Address Book
+                        </button>
+                        <button
+                          onClick={() => setConnectMethod("username")}
+                          className={`flex-1 py-1.5 rounded-lg transition-colors cursor-pointer text-center ${
+                            connectMethod === "username"
+                              ? "bg-indigo-600 text-white"
+                              : "text-slate-550 hover:text-slate-800"
+                          }`}
+                        >
+                          Username Lookup
+                        </button>
+                      </div>
+
+                      {/* Case 1: Contacts Address Book */}
+                      {connectMethod === "contacts" && (
+                        <div className="space-y-3">
+                          <p className="text-[10.5px] text-slate-500 font-medium">
+                            BloomBirth scanner has located <strong>{MOCK_EXTERNAL_PROFILES.length} core matches</strong> in your local device phonebook. Tap to sync profiles:
+                          </p>
+
+                          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                            {MOCK_EXTERNAL_PROFILES.map(p => {
+                              const isConnected = friends.some(f => f.id === p.id);
+                              
+                              return (
+                                <div 
+                                  key={p.id}
+                                  className="p-3 bg-slate-50 hover:bg-slate-100/75 rounded-2xl border border-slate-150 transition text-left flex flex-col justify-between gap-2.5"
+                                >
+                                  <div className="flex justify-between items-start gap-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-[11px] text-white font-serif font-bold ${p.avatar}`}>
+                                        {p.name.split(" ").map(n => n[0]).join("")}
+                                      </span>
+                                      <div className="min-w-0">
+                                        <span className="text-xs font-bold text-slate-800 block truncate">{p.name}</span>
+                                        <span className="text-[9.5px] font-mono text-slate-400 block">{p.phone} • Birthday: {formatBirthdayDate(p.birthday)}</span>
+                                      </div>
+                                    </div>
+
+                                    {isConnected ? (
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase bg-slate-200/60 p-1 px-2.5 rounded-lg shrink-0">
+                                        Connected
+                                      </span>
+                                    ) : (
+                                      <button
+                                        onClick={() => handleImportInitiate(p)}
+                                        className="text-[10.5px] font-extrabold text-indigo-600 hover:text-indigo-800 border border-indigo-200 bg-indigo-50 hover:bg-indigo-100/50 p-1 px-2.5 rounded-lg shrink-0 transition"
+                                      >
+                                        Import +
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {/* Interests Shelf - "so that you can know their interests" */}
+                                  <div className="bg-white rounded-lg p-1.5 border border-slate-100 text-[10.5px] leading-relaxed flex items-baseline gap-1">
+                                    <span className="font-bold text-slate-400 shrink-0">Interests:</span>
+                                    <div className="flex flex-wrap gap-1">
+                                      {p.interests.map((tag, i) => (
+                                        <span key={i} className="text-[9.5px] text-slate-600 bg-slate-100 px-1 py-0.2 rounded">
+                                          #{tag}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Case 2: Username Lookup */}
+                      {connectMethod === "username" && (
+                        <div className="space-y-3">
+                          <label className="block text-[10px] font-bold uppercase text-indigo-800">Lookup user handle</label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={usernameSearch}
+                              onChange={(e) => setUsernameSearch(e.target.value)}
+                              placeholder="Type handle e.g. elena_zen, biker_zoe..."
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:outline-none"
+                            />
+                            {usernameSearch && (
+                              <button 
+                                onClick={() => setUsernameSearch("")} 
+                                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-650"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1 pt-1">
+                            {MOCK_EXTERNAL_PROFILES
+                              .filter(p => {
+                                if (!usernameSearch.trim()) return true; // show all handles by default to let user browse
+                                return p.username.toLowerCase().includes(usernameSearch.toLowerCase()) || p.name.toLowerCase().includes(usernameSearch.toLowerCase());
+                              })
+                              .map(p => {
+                                const isConnected = friends.some(f => f.id === p.id);
+
+                                return (
+                                  <div 
+                                    key={p.id}
+                                    className="p-3 bg-slate-50 rounded-2xl border border-slate-150 text-left flex flex-col gap-2 transition"
+                                  >
+                                    <div className="flex justify-between items-start gap-1">
+                                      <div className="flex items-center gap-2">
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs text-white ${p.avatar}`}>
+                                          {p.name.split(" ").map(n => n[0]).join("")}
+                                        </div>
+                                        <div>
+                                          <span className="text-xs font-bold text-slate-800 block">{p.name}</span>
+                                          <span className="text-[10px] text-indigo-600 block bg-indigo-50 px-1 py-0.2 rounded w-fit font-mono font-bold mt-0.5">@{p.username}</span>
+                                        </div>
+                                      </div>
+
+                                      {isConnected ? (
+                                        <span className="text-[10px] font-black text-slate-400 bg-slate-200 p-1 px-2 rounded-lg">
+                                          Connected
+                                        </span>
+                                      ) : (
+                                        <button
+                                          onClick={() => handleImportInitiate(p)}
+                                          className="text-[10.5px] font-black text-white bg-indigo-600 hover:bg-indigo-700 p-1 px-2.5 rounded-lg transition"
+                                        >
+                                          Connect Handle +
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    {/* Interests banner */}
+                                    <div className="bg-white rounded-lg p-1.5 border border-slate-100 text-[10.5px] flex items-baseline gap-1">
+                                      <span className="font-extrabold text-slate-450 shrink-0 font-mono">Interests:</span>
+                                      <div className="flex flex-wrap gap-1">
+                                        {p.interests.map((tag, i) => (
+                                          <span key={i} className="text-[9px] text-indigo-750 bg-indigo-50 font-bold px-1 rounded">
+                                            #{tag}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Integrated Live Simulations Desk Card (Simulating friend posting wishlist!) */}
+                    <div className="bg-slate-900 text-slate-100 rounded-[2rem] p-5 border border-slate-800 space-y-3">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-black text-indigo-300 uppercase tracking-wider flex items-center gap-1">
+                          <Sliders className="w-3.5 h-3.5 text-indigo-400 animate-spin" /> Live Scheduler Simulation Desk
+                        </span>
+                        <span className="text-[9px] bg-slate-800 text-emerald-400 px-1.5 py-0.5 rounded font-mono font-bold uppercase">Streaming</span>
+                      </div>
+                      <p className="text-[10.5px] text-slate-400 leading-normal">
+                        BloomBirth live triggers let you test getting a notification when they post their birthday wishlist. Drag-and-drop or select profiles:
+                      </p>
+                      
+                      <div className="space-y-1.5 max-h-[190px] overflow-y-auto pr-1">
+                        {MOCK_EXTERNAL_PROFILES.map(p => {
+                          const isConnected = friends.some(f => f.id === p.id);
+                          const isPosted = postedLists[p.id];
+                          const timer = pendingPostingTimers[p.id];
+
+                          return (
+                            <div key={p.id} className="p-2 rounded-xl bg-slate-950 border border-slate-850 flex justify-between items-center text-[10.5px] gap-2">
+                              <span className="text-zinc-200 font-bold truncate">
+                                {p.name}
+                              </span>
+
+                              <div className="shrink-0 flex gap-1.5 items-center">
+                                {!isConnected ? (
+                                  <span className="text-[8.5px] text-slate-500 font-bold bg-slate-900 px-1.5 py-0.5 rounded">Offline</span>
+                                ) : isPosted ? (
+                                  <span className="text-[8.5px] text-emerald-400 font-bold bg-emerald-950/40 border border-emerald-900 px-1.5 py-0.5 rounded">Posted</span>
+                                ) : timer ? (
+                                  <button
+                                    onClick={() => {
+                                      // Cancel timer and post now
+                                      setPendingPostingTimers(prev => {
+                                        const next = { ...prev };
+                                        delete next[p.id];
+                                        return next;
+                                      });
+                                      handlePostWishlistAutomatically(p.id);
+                                    }}
+                                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-[8px] px-2 py-0.5 rounded animate-pulse"
+                                    title="Force list post instantly to trigger notification"
+                                  >
+                                    Publish ({timer}s) 📣
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handlePostWishlistAutomatically(p.id)}
+                                    className="bg-indigo-600 hover:bg-indigo-550 text-white font-extrabold text-[8.5px] px-2 py-0.5 rounded"
+                                  >
+                                    Post Wishlist 📣
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+              </div>
+
+              {/* Right Companion Detail cockpit area (SPAN 7) */}
+              <div className="lg:col-span-7">
+                <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-6 md:p-8 space-y-6">
+                  
+                  {/* Banner Profile Summary */}
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-stretch gap-4 pb-6 border-b border-slate-200">
+                    <div className="flex gap-4 items-center">
+                      <div className={`w-14 h-14 rounded-2xl ${selectedFriend.avatar} text-white flex items-center justify-center font-bold font-serif text-2xl shadow-sm`}>
+                        {selectedFriend.name.split(" ").map(n => n[0]).join("")}
+                      </div>
+
+                      <div>
+                        <h3 className="text-2xl font-black text-slate-900 tracking-tight">{selectedFriend.name}</h3>
+                        <p className="text-xs text-slate-500 font-semibold">
+                          Relationship Role: <span className="text-zinc-800 font-bold">{selectedFriend.relationship}</span> • Turning <span className="text-zinc-800 font-bold">{selectedFriend.age}</span>
+                        </p>
+                        <p className="text-xs text-slate-400 mt-0.5">Birthday Calendar Target: <span className="text-indigo-600 font-bold">{formatBirthdayDate(selectedFriend.birthday)} ({selectedFriend.birthday})</span></p>
+
+                        {/* Elegant coordinates tray */}
+                        <div className="flex flex-wrap items-center gap-1.5 mt-2.5 text-left">
+                          <div className="bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-lg px-2 py-1 flex items-center gap-1 text-[10.5px] font-semibold text-slate-700">
+                            <Phone className="w-3 h-3 text-blue-500" />
+                            <span className="text-slate-400 font-medium">Phone:</span>
+                            <span className="font-mono text-slate-800">{selectedFriend.phone || "+233241234567"}</span>
+                          </div>
+                          <div className="bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-lg px-2 py-1 flex items-center gap-1 text-[10.5px] font-semibold text-slate-700">
+                            <MessageSquare className="w-3 h-3 text-emerald-500" />
+                            <span className="text-slate-400 font-medium">WhatsApp:</span>
+                            <span className="font-mono text-slate-800">{selectedFriend.whatsapp || "+233241234567"}</span>
+                          </div>
+                          <div className="bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-lg px-2 py-1 flex items-center gap-1 text-[10.5px] font-semibold text-slate-700">
+                            <Mail className="w-3 h-3 text-rose-500" />
+                            <span className="text-slate-400 font-medium">Email:</span>
+                            <span className="font-mono text-slate-800">{selectedFriend.email || "friend@example.com"}</span>
+                          </div>
+                          <div className="bg-amber-50/50 hover:bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 flex items-center gap-1 text-[10.5px] font-semibold">
+                            <span className="text-amber-600 font-bold">Snapchat:</span>
+                            <span className="font-mono text-amber-800 font-bold">@{selectedFriend.snapchat || "friend_snap"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col justify-end gap-2 text-right">
+                      <div className="bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-1 rounded-xl text-xs font-semibold w-fit self-end flex items-center gap-1 bg-opacity-60">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>In {calculateDaysRemaining(selectedFriend.birthday)} Days</span>
+                      </div>
+                      
+                      <div className="flex gap-1.5 justify-end">
+                        <button
+                          onClick={() => setIsEditingFriend(!isEditingFriend)}
+                          className="px-3 py-1 text-[11px] font-bold text-slate-700 hover:text-indigo-600 bg-slate-150 rounded"
+                        >
+                          {isEditingFriend ? "Close Editor" : "Edit Profile Details"}
+                        </button>
+                        {selectedFriend.id !== 'alex' && (
+                          <button
+                            onClick={() => handleDeleteFriendProfile(selectedFriend.id)}
+                            className="p-1 px-1.5 bg-rose-50 text-rose-600 rounded text-[11px]"
+                            title="Delete companion profile"
+                          >
+                            <Trash className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* UNCONFIGURED RELATIONSHIP PROMPT: CONFIGURE LATER */}
+                  {selectedFriend.relationship === "Configure Later" && (
+                    <div className="bg-amber-50/70 border border-amber-300 rounded-2xl p-4.5 text-slate-800 text-left">
+                      <div className="flex items-center gap-2 mb-2 text-amber-900 font-extrabold text-xs">
+                        <AlertCircle className="w-4 h-4 text-amber-600 animate-pulse" />
+                        <span>Establish Relationship Category Role</span>
+                      </div>
+                      <p className="text-[11px] text-slate-650 leading-relaxed mb-3">
+                        This profile was imported using "Configure Later" option. Set their role now to organize custom locket views and activate alarms.
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {["Best Friend", "College Buddy", "Work Colleague", "Family Relative", "Gym Partner"].map(rel => (
+                          <button
+                            key={rel}
+                            onClick={() => {
+                              setFriends(prev => prev.map(f => f.id === selectedFriend.id ? { ...f, relationship: rel } : f));
+                              appendLog(`🤝 Relations Configured: Assigned "${rel}" role to ${selectedFriend.name}`);
+                              triggerToast("Role Established 🤝", `Set relationship style for ${selectedFriend.name} to ${rel}`);
+                            }}
+                            className="bg-white hover:bg-slate-50 border border-amber-250 hover:border-amber-450 text-slate-700 font-bold px-2.5 py-1.5 text-[10px] rounded-xl transition-all cursor-pointer shadow-2xs"
+                          >
+                            {rel}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Inline Profile Editor Mode */}
+                  {isEditingFriend && (
+                    <form onSubmit={handleSaveFriendProfile} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-left space-y-3">
+                      <h4 className="text-xs font-bold text-slate-900 uppercase">Interactive Profile Customizer</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[9px] font-semibold text-slate-500 uppercase mb-0.5">Edit Companion Name</label>
+                          <input 
+                            type="text" 
+                            value={editFriendName} 
+                            onChange={(e) => setEditFriendName(e.target.value)} 
+                            className="bg-white border rounded p-1 px-2 text-xs w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-semibold text-slate-500 uppercase mb-0.5">Edit Birthdate</label>
+                          <input 
+                            type="date" 
+                            value={editFriendBirthday} 
+                            onChange={(e) => setEditFriendBirthday(e.target.value)} 
+                            className="bg-white border rounded p-1 px-2 text-xs w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-semibold text-slate-500 uppercase mb-0.5">Edit Turning Age</label>
+                          <input 
+                            type="number" 
+                            value={editFriendAge} 
+                            onChange={(e) => setEditFriendAge(e.target.value)} 
+                            className="bg-white border rounded p-1 px-2 text-xs w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-semibold text-slate-500 uppercase mb-0.5">Edit Relationship</label>
+                          <select 
+                            value={editFriendRelationship} 
+                            onChange={(e) => setEditFriendRelationship(e.target.value)} 
+                            className="bg-white border rounded p-1 px-2 text-xs w-full"
+                          >
+                            <option value="Best Friend">Best Friend</option>
+                            <option value="College Buddy">College Buddy</option>
+                            <option value="Work Colleague">Work Colleague</option>
+                            <option value="Family Relative">Family Relative</option>
+                            <option value="Gym Partner">Gym Partner</option>
+                            <option value="Self">Self</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-semibold text-slate-500 uppercase mb-0.5">Edit Phone Number</label>
+                          <input 
+                            type="text" 
+                            value={editFriendPhone} 
+                            onChange={(e) => setEditFriendPhone(e.target.value)} 
+                            className="bg-white border rounded p-1 px-2 text-xs w-full font-mono text-slate-850"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-semibold text-slate-500 uppercase mb-0.5">Edit WhatsApp Number</label>
+                          <input 
+                            type="text" 
+                            value={editFriendWhatsApp} 
+                            onChange={(e) => setEditFriendWhatsApp(e.target.value)} 
+                            className="bg-white border rounded p-1 px-2 text-xs w-full font-mono text-slate-850"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-semibold text-slate-500 uppercase mb-0.5">Edit Email Address</label>
+                          <input 
+                            type="email" 
+                            value={editFriendEmail} 
+                            onChange={(e) => setEditFriendEmail(e.target.value)} 
+                            className="bg-white border rounded p-1 px-2 text-xs w-full font-mono text-slate-855"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-semibold text-slate-500 uppercase mb-0.5">Edit Snapchat Username</label>
+                          <input 
+                            type="text" 
+                            value={editFriendSnapchat} 
+                            onChange={(e) => setEditFriendSnapchat(e.target.value)} 
+                            className="bg-white border rounded p-1 px-2 text-xs w-full font-mono text-indigo-700 font-bold"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Avatar backdrop background selector */}
+                      <div>
+                        <label className="block text-[9px] font-semibold text-slate-500 uppercase mb-1">Modify Avatar Theme Accent</label>
+                        <div className="flex gap-2">
+                          {["bg-teal-500", "bg-emerald-500", "bg-indigo-500", "bg-purple-500", "bg-amber-500", "bg-rose-500", "bg-pink-500"].map(col => (
+                            <button
+                              key={col}
+                              type="button"
+                              onClick={() => setEditFriendAvatar(col)}
+                              className={`w-6 h-6 rounded-full border-1.5 ${col} ${
+                                editFriendAvatar === col ? "ring-2 ring-indigo-500 scale-110" : "ring-0"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-1 border-t mt-3">
+                        <button type="button" onClick={() => setIsEditingFriend(false)} className="px-3 py-1 bg-slate-200 text-slate-700 text-[10px] rounded font-semibold cursor-pointer">Cancel</button>
+                        <button type="submit" className="px-3 py-1 bg-indigo-600 text-white text-[10px] rounded font-semibold cursor-pointer">Save Profile Modifications</button>
+                      </div>
+                    </form>
+                  )}
+
+                  {/* Circle Interests / Tag Shelf */}
+                  <div className="text-left">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                        <Smile className="w-3.5 h-3.5 text-indigo-400" /> Circle Interests &amp; Tags
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {selectedFriend.interests.length === 0 ? (
+                        <p className="text-xs text-slate-405 italic">No tagging descriptors bounded to registration cards.</p>
+                      ) : (
+                        selectedFriend.interests.map((tag, idx) => (
+                          <div 
+                            key={idx}
+                            className="bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg text-slate-700 font-semibold text-[11px] flex items-center gap-1 transition-colors border border-slate-150"
+                          >
+                            <span>#{tag}</span>
+                            <button 
+                              onClick={() => handleRemoveInterestTag(tag)}
+                              className="text-slate-450 hover:text-rose-500 transition-colors cursor-pointer"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Tag form adder */}
+                    <form onSubmit={handleAddInterestTag} className="flex gap-2 max-w-sm">
+                      <input 
+                        type="text" 
+                        placeholder="Attach hobby descriptors..." 
+                        value={customInterest}
+                        onChange={(e) => setCustomInterest(e.target.value)}
+                        className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs flex-grow focus:outline-none focus:ring-1 focus:ring-indigo-150 focus:bg-white"
+                      />
+                      <button 
+                        type="submit" 
+                        className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl block cursor-pointer"
+                      >
+                        Add Tag
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Registered Wishlist Items Panel */}
+                  <div className="text-left border-t border-slate-200 pt-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="font-extrabold text-[15px] text-slate-850 flex items-center gap-1.5">
+                        <Heart className="w-4 h-4 text-rose-500 fill-rose-500" /> Wishlist Desires Folder
+                      </h4>
+                      <span className="text-[10px] bg-slate-100 font-mono px-2 py-0.5 rounded font-extrabold text-slate-505">
+                        {selectedFriend.wishlist.length} Items Listed
+                      </span>
+                    </div>
+
+                    {/* Edit Wish Box inline */}
+                    {editingWishId && (
+                      <form onSubmit={saveEditedWishlistItem} className="bg-amber-50/50 p-4 rounded-2xl border border-amber-200 mb-4 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest">Editing Selected Desire Entry</span>
+                          <button type="button" onClick={() => setEditingWishId(null)} className="text-slate-505">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          <input 
+                            type="text" 
+                            required 
+                            value={editingWishTitle} 
+                            onChange={(e) => setEditingWishTitle(e.target.value)} 
+                            placeholder="Desire Name" 
+                            className="bg-white border rounded px-2.5 py-1 text-xs"
+                          />
+                          <input 
+                            type="text" 
+                            value={editingWishPrice} 
+                            onChange={(e) => setEditingWishPrice(e.target.value)} 
+                            placeholder="Estimated Pricing (e.g. $25)" 
+                            className="bg-white border rounded px-2.5 py-1 text-xs"
+                          />
+                        </div>
+                        <input 
+                          type="text" 
+                          value={editingWishUrl} 
+                          onChange={(e) => setEditingWishUrl(e.target.value)} 
+                          placeholder="Optional purchase link" 
+                          className="bg-white border rounded px-2.5 py-1 text-xs w-full"
+                        />
+                        <div className="flex gap-2 justify-end pt-1">
+                          <button type="button" onClick={() => setEditingWishId(null)} className="px-3 py-1 bg-slate-200 text-slate-700 rounded text-[10.5px] cursor-pointer">Cancel</button>
+                          <button type="submit" className="px-3 py-1 bg-indigo-600 text-white rounded text-[10.5px] cursor-pointer">Save Changes</button>
+                        </div>
+                      </form>
+                    )}
+
+                    {/* Wishlist item catalogs */}
+                    <div className="space-y-2.5 max-h-[290px] overflow-y-auto pr-1">
+                      {selectedFriend.wishlist.length === 0 ? (
+                        <div className="py-8 text-center text-zinc-450 bg-slate-50 rounded-2xl border border-slate-100">
+                          <GiftIcon className="w-10 h-10 mx-auto text-zinc-400 stroke-1 mb-2 animate-pulse" />
+                          <p className="text-xs font-semibold">No wishes defined inside companion folder registry.</p>
+                          <button 
+                            onClick={() => setIsAddingWish(true)} 
+                            className="text-[11px] text-indigo-600 hover:underline font-bold mt-2"
+                          >
+                            Add desire item +
+                          </button>
+                        </div>
+                      ) : (
+                        selectedFriend.wishlist.map(wish => (
+                          <div 
+                            key={wish.id}
+                            className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between gap-1.5 ${
+                              wish.isClaimed 
+                                ? "bg-slate-50/70 border-slate-200 opacity-80" 
+                                : "bg-white border-slate-150 hover:border-slate-300"
+                            }`}
+                          >
+                            <div className="flex justify-between items-start gap-3">
+                              <div className="flex-1">
+                                <span className="text-xs font-bold text-slate-800 break-words">{wish.title}</span>
+                                <div className="flex items-center gap-3 mt-1.5">
+                                  <span className="text-xs font-extrabold text-emerald-600 font-mono">{wish.price}</span>
+                                  {wish.url && (
+                                    <a 
+                                      href={wish.url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer" 
+                                      className="text-[10px] text-indigo-600 hover:underline flex items-center gap-0.5 font-bold"
+                                    >
+                                      Purchase Platform <ExternalLink className="w-2.5 h-2.5" />
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col gap-1.5 items-end justify-end shrink-0">
+                                {selectedFriend.id !== 'alex' ? (
+                                  <button
+                                    onClick={() => toggleClaimWishlistItem(selectedFriend.id, wish.id)}
+                                    className={`px-3 py-1 rounded-lg text-[10px] font-bold cursor-pointer inline-flex items-center gap-0.5 ${
+                                      wish.isClaimed
+                                        ? "bg-slate-200 text-slate-705 hover:bg-rose-100 hover:text-rose-600"
+                                        : "bg-indigo-600 text-white hover:bg-indigo-750"
+                                    }`}
+                                  >
+                                    {wish.isClaimed ? "Reserved Guide" : "Claim Gift"}
+                                  </button>
+                                ) : (
+                                  <span className="text-[10px] text-zinc-400 font-bold bg-zinc-100 px-1.5 py-0.5 rounded uppercase">Self Registry</span>
+                                )}
+
+                                <div className="flex gap-1.5">
+                                  <button
+                                    onClick={() => startEditingWishlistItem(wish)}
+                                    className="p-1 text-slate-505 hover:text-indigo-600 hover:bg-indigo-50 rounded cursor-pointer"
+                                    title="Edit wishlist card parameters"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => deleteWishlistItem(wish.id)}
+                                    className="p-1 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded cursor-pointer"
+                                    title="Delete wishlist card parameters"
+                                  >
+                                    <Trash className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {wish.isClaimed && (
+                              <p className="text-[9.5px] italic font-semibold text-slate-500 bg-slate-100 rounded-lg p-1.5 px-2.5 w-fit">
+                                🎁 Commitment claimed by: {wish.claimedBy}
+                              </p>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Inline desire adding drawer */}
+                    {!isAddingWish && (
+                      <button
+                        onClick={() => setIsAddingWish(true)}
+                        className="mt-4 w-full py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl text-xs font-bold transition-all border border-dashed border-slate-200 flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Add customized desire option</span>
+                      </button>
+                    )}
+
+                    {isAddingWish && (
+                      <form onSubmit={addWishlistItem} className="mt-4 bg-slate-50 p-4 border border-slate-200 rounded-2xl text-left space-y-3">
+                        <div className="flex justify-between items-center bg-slate-100 p-1.5 rounded-lg">
+                          <h5 className="text-[11px] font-bold text-slate-700 uppercase">Save New Desire Option</h5>
+                          <button type="button" onClick={() => setIsAddingWish(false)} className="text-slate-400 hover:text-slate-650">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div>
+                            <label className="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Desire Name / Description</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. Saffron Bonsai Plant Pot (Standard size)"
+                              value={newItemTitle}
+                              onChange={(e) => setNewItemTitle(e.target.value)}
+                              className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs focus:ring-1 focus:outline-none"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Estimated Price Label</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. $30.00"
+                                value={newItemPrice}
+                                onChange={(e) => setNewItemPrice(e.target.value)}
+                                className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs focus:ring-1 focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Store / Platform URL</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. https://amazon.com/..."
+                                value={newItemUrl}
+                                onChange={(e) => setNewItemUrl(e.target.value)}
+                                className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs focus:ring-1 focus:outline-none"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="w-full py-2 bg-indigo-600 hover:bg-indigo-750 text-white text-xs font-bold rounded-xl shadow cursor-pointer transition-colors"
+                        >
+                          Save Desire
+                        </button>
+                      </form>
+                    )}
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ==================== SCREEN 3: SMART AI GIFT LAB ==================== */}
+          {activeSection === "ai-lab" && (
+            <div className="bg-indigo-50/50 rounded-[2rem] border border-indigo-100 p-6 md:p-8 space-y-6 text-left" id="view-ai-lab-hull">
+              
+              {/* Header explanation banner */}
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-indigo-100/60 pb-6">
+                <div className="flex items-center gap-3">
+                  <span className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow">
+                    <Wand2 className="w-6 h-6 animate-pulse" />
+                  </span>
+                  <div>
+                    <h3 className="font-extrabold text-lg text-indigo-950">Smart Spark AI Ideas Lab</h3>
+                    <p className="text-xs text-slate-500">Query the Gemini LLM pipeline to find inspired gift matches based on companion parameters</p>
+                  </div>
+                </div>
+
+                <div className="bg-indigo-100 text-indigo-750 font-bold px-3 py-1 text-xs rounded-full border border-indigo-200">
+                  Model Ref: Gemini 3.5 Flash
+                </div>
+              </div>
+
+              {/* Form parameters workbench */}
+              <div className="bg-white rounded-3xl p-6 border border-indigo-100/60 grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
+                <div className="md:col-span-3">
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1.5">Target Companion Context</label>
+                  <select
+                    value={selectedFriendId}
+                    onChange={(e) => setSelectedFriendId(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-205 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-150 font-bold text-slate-800"
+                  >
+                    {friends.map(f => (
+                      <option key={f.id} value={f.id}>
+                        {f.name} (Turns {f.age})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1.5">Relation Parameter</label>
+                  <input
+                    type="text"
+                    value={aiRelationship}
+                    onChange={(e) => setAiRelationship(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-205 rounded-xl px-3 py-2 text-xs focus:outline-none font-semibold text-slate-800"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1.5">Target Age Group</label>
+                  <input
+                    type="text"
+                    value={aiAge}
+                    onChange={(e) => setAiAge(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-205 rounded-xl px-3 py-2 text-xs focus:outline-none font-semibold text-slate-800"
+                  />
+                </div>
+
+                <div className="md:col-span-3">
+                  <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1.5">Matching Budget Bracket</label>
+                  <select
+                    value={aiBudget}
+                    onChange={(e) => setAiBudget(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-205 rounded-xl px-3 py-2 text-xs focus:outline-none font-semibold text-slate-800"
+                  >
+                    <option value="under $20">under $20 (Essential)</option>
+                    <option value="under $50">under $50 (Standard tier)</option>
+                    <option value="under $100">under $100 (Premium tier)</option>
+                    <option value="above $200">above $200 (Luxury limit)</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <button
+                    onClick={handleGetGiftSuggestions}
+                    disabled={isLoadingAi}
+                    className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    {isLoadingAi ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Querying...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="w-3.5 h-3.5" />
+                        <span>Trigger AI</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Tag previews indicator from target user */}
+              <div className="flex gap-2 items-center text-xs">
+                <span className="font-bold text-slate-500">Loaded companion interests:</span>
+                <div className="flex flex-wrap gap-1">
+                  {selectedFriend.interests.map((i, idx) => (
+                    <span key={idx} className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded">
+                      #{i}
+                    </span>
+                  ))}
+                  {selectedFriend.interests.length === 0 && <span className="text-slate-400 italic">None bound. Tweak in Buddies Registry to feed AI.</span>}
+                </div>
+              </div>
+
+              {/* Suggestions Results Feed */}
+              <div className="space-y-4">
+                {isLoadingAi ? (
+                  <div className="py-16 flex flex-col items-center justify-center text-indigo-600 gap-3 text-center bg-white rounded-3xl border border-indigo-100/60 shadow-xs">
+                    <span className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500 animate-pulse">Consulting Gemini Flash with profile tag scores...</p>
+                  </div>
+                ) : aiSuggestions.length === 0 ? (
+                  <div className="py-12 text-center bg-white rounded-3xl border border-dashed border-indigo-200">
+                    <GiftIcon className="w-12 h-12 text-indigo-400/80 mx-auto stroke-1 mb-2 animate-bounce" />
+                    <p className="font-bold text-slate-800 text-xs text-slate-700">Ready to initiate recommendations query</p>
+                    <p className="text-[10px] text-slate-400 mt-1">Configure criteria cards above and trigger the processor to list curated gifts.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6" id="ai-lab-suggestions-feed">
+                    {aiSuggestions.map((gift, idx) => (
+                      <div 
+                        key={idx}
+                        className="bg-white border border-indigo-100 hover:border-indigo-300 shadow-sm p-5 rounded-2xl flex flex-col justify-between transition-colors text-left"
+                      >
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-start gap-1">
+                            <span className="bg-rose-100 text-rose-700 text-[10px] font-black px-2.5 py-1 rounded-lg uppercase">
+                              {gift.category || "Gift Option"}
+                            </span>
+                            <span className="text-xs font-extrabold text-emerald-600 font-mono">{gift.estimatedPrice}</span>
+                          </div>
+                          
+                          <h5 className="font-black text-xs text-indigo-950 mb-1 flex items-center gap-1">
+                            🎁 {gift.name}
+                          </h5>
+                          
+                          <p className="text-[11px] text-slate-500 leading-relaxed font-normal">
+                            {gift.reason}
+                          </p>
+                        </div>
+                        
+                        <div className="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center bg-slate-50 -mx-5 -mb-5 p-4 rounded-b-2xl">
+                          <span className="text-[10px] text-emerald-600 font-extrabold">98% Match Rating</span>
+                          <button 
+                            onClick={() => saveAiSuggestionToWishlist(gift)}
+                            className="text-[11px] text-indigo-600 font-black hover:underline cursor-pointer"
+                          >
+                            Save to Registry +
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {aiNote && !isLoadingAi && (
+                  <div className="flex items-center gap-2 mt-4 bg-white p-3 text-[10.5px] rounded-xl text-slate-500 border border-indigo-100 shadow-xs">
+                    <Info className="w-4 h-4 text-indigo-500 shrink-0" />
+                    <span>{aiNote}</span>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          )}
+
+          {/* ==================== SCREEN 4: MY PERSONAL WISHLIST HUB ==================== */}
+          {activeSection === "my-wishlist" && (
+            <div className="space-y-6" id="view-my-wishlist-hull">
+              
+              {/* User profile details ribbon */}
+              <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 flex flex-col md:flex-row justify-between items-stretch gap-6 shadow-xs text-left" id="my-profile-banner">
+                <div className="flex gap-4 items-center">
+                  <div className="w-14 h-14 rounded-2xl bg-teal-500 text-white flex items-center justify-center font-black text-2xl font-serif">
+                    AP
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900">Alex Patel (You)</h3>
+                    <p className="text-xs text-slate-500 font-semibold">Registered Status: <span className="font-extrabold text-zinc-850">Self Account</span> • Age: <span className="font-extrabold text-zinc-850">29</span></p>
+                    <p className="text-xs text-slate-400">Current calendar: <span className="font-semibold text-indigo-600 font-mono">June 25, 1997</span> (Next occurs in soonest months)</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="bg-teal-50 p-4 rounded-2xl border border-teal-150 text-left min-w-[130px]">
+                    <span className="text-[9px] font-bold text-teal-800 uppercase block">Desires bound</span>
+                    <span className="text-xl font-bold text-slate-900 block font-mono">{friends.find(f => f.id === 'alex')?.wishlist.length} items</span>
+                  </div>
+                  <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-150 text-left min-w-[130px]">
+                    <span className="text-[9px] font-bold text-indigo-800 uppercase block">Claimed by friends</span>
+                    <span className="text-xl font-bold text-slate-900 block font-mono">
+                      {friends.find(f => f.id === 'alex')?.wishlist.filter(w => w.isClaimed).length} items
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Private desires workspace table panel */}
+              <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 text-left">
+                <div className="flex justify-between items-center mb-6">
+                  <h4 className="font-bold text-base text-slate-850 flex items-center gap-2">
+                    <GiftIcon className="w-5 h-5 text-indigo-600" /> My Public Wishlist Folders
+                  </h4>
+                  <p className="text-xs text-slate-400">Claims made on this screen simulation represent companions reserving gifts for your landmark day.</p>
+                </div>
+
+                {/* Grid items */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {friends.find(f => f.id === 'alex')?.wishlist.map(wish => (
+                    <div 
+                      key={wish.id}
+                      className="p-4 rounded-2xl border border-slate-150 bg-slate-50 flex justify-between items-start gap-4 transition-all"
+                    >
+                      <div className="flex-1">
+                        <span className="text-xs font-bold text-slate-850 block">{wish.title}</span>
+                        <div className="flex items-center gap-3 mt-1.5">
+                          <span className="text-xs font-black text-emerald-600">{wish.price}</span>
+                          {wish.url && (
+                            <a 
+                              href={wish.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-[10px] text-indigo-600 font-bold hover:underline flex items-center gap-0.5"
+                            >
+                              Store reference <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
+                          )}
+                        </div>
+
+                        {wish.isClaimed && (
+                          <div className="mt-3 bg-teal-500/10 border border-teal-500/20 text-teal-800 text-[9.5px] font-bold p-1 px-2.5 rounded-lg w-fit">
+                            🔒 Reserved in secret by {wish.claimedBy}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-1 items-end shrink-0">
+                        <button
+                          onClick={() => {
+                            setSelectedFriendId("alex");
+                            startEditingWishlistItem(wish);
+                            setActiveSection("registry");
+                          }}
+                          className="p-1 px-2 text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 rounded block font-semibold"
+                        >
+                          Modify Entry
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedFriendId("alex");
+                            deleteWishlistItem(wish.id);
+                          }}
+                          className="p-1 px-2 text-[10px] bg-rose-50 hover:bg-rose-100 text-rose-650 rounded block mt-1"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Trigger to quick add wishes to Alexa self */}
+                <div className="pt-6 border-t border-slate-150 mt-6 flex justify-end">
+                  <button
+                    onClick={() => {
+                      setSelectedFriendId("alex");
+                      setIsAddingWish(true);
+                      setActiveSection("registry");
+                    }}
+                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Create desire listing on your registry</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ==================== SCREEN 5: WIDGET STUDIO SIMULATOR ==================== */}
+          {activeSection === "widgets" && (
+            <div className="space-y-6" id="view-widgets-hull">
+              {/* Simulator instruction label */}
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 text-left header-explain-widgets">
+                <h3 className="font-black text-lg text-slate-900">Interactive Device Complication Simulator</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Adjust preferences on the customizer control panel to see live lock screen complications or homescreen frames automatically synchronized dynamically.
+                </p>
+              </div>
+
+              {/* Mounted child Widget Simulator with actual friends state */}
+              <div className="bg-slate-50 rounded-[2rem] border border-slate-200/50 p-2 md:p-4">
+                <WidgetSimulator friends={friends} />
+              </div>
+            </div>
+          )}
+
+          {/* ==================== SCREEN 6: MILESTONES & LOGS ==================== */}
+          {activeSection === "achievements" && (
+            <div className="space-y-6 text-left" id="view-achievements-hull">
+              
+              {/* Gamification Level indicators */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+                <div className="md:col-span-8 bg-white rounded-3xl border border-slate-200 p-6 flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Gamification Analyzer</span>
+                    <h3 className="text-xl font-extrabold text-slate-900 mt-1">Alexander's Pro Gift-Giving Milestones</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Collect trophies by creating active lists and claiming companion wishes</p>
+                  </div>
+
+                  <div className="mt-6 space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-extrabold text-indigo-600 uppercase tracking-wider">Level Progression</span>
+                      <span className="font-black text-indigo-750 font-mono">Level {unlockLevel} (Gift Master Rank)</span>
+                    </div>
+                    {/* Visual Progress bar */}
+                    <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200">
+                      <div 
+                        className="bg-indigo-600 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min((friends.find(f => f.id === 'alex')?.achievements.length || 0) * 20, 100)}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between items-center text-[10px] text-zinc-400 font-semibold">
+                      <span>{(friends.find(f => f.id === 'alex')?.achievements.length || 0)} milestones unlocked</span>
+                      <span>{6 - (friends.find(f => f.id === 'alex')?.achievements.length || 0)} left to max prestige</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="md:col-span-4 bg-emerald-50 rounded-3xl border border-emerald-150 p-6 flex flex-col justify-between">
+                  <div>
+                    <h4 className="font-extrabold text-emerald-950 text-sm">Coordinator Roster</h4>
+                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                      Share achievements securely with your other sync groups by clicking each awarded badge copy.
+                    </p>
+                  </div>
+                  <div className="bg-white/80 rounded-2xl p-3 border border-emerald-200 text-[11px] font-semibold">
+                    🏆 Prestige Ranks: 
+                    <ul className="list-disc pl-4 mt-1 font-normal text-slate-500 space-y-0.5">
+                      <li>Novice Coordinator (Lvl 1 - 3)</li>
+                      <li>Expert Scheduler (Lvl 4 - 7)</li>
+                      <li>Elite Gift Master (Lvl 8 - 12)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Badges Grid */}
+              <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-4">Milestones Achievements Directory</span>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4" id="badges-grid-roster">
+                  {ALL_ACHIEVEMENTS_LIST.map((ach) => {
+                    const isUnlocked = friends.find(f => f.id === 'alex')?.achievements.some(a => a.title === ach.title);
+                    
+                    return (
+                      <div
+                        key={ach.title}
+                        onClick={() => {
+                          if (isUnlocked) {
+                            const copyText = `🎉 Unlocked Achievement: "${ach.title}" — ${ach.description}`;
+                            navigator.clipboard.writeText(copyText).then(() => {
+                              triggerToast("Copied to Clipboard!", "Social sharing text saved successfully.");
+                            });
+                          } else {
+                            triggerToast("Locked Milestone", "Complete wishlist directories or claim tasks to award this badge.");
+                          }
+                        }}
+                        className={`p-4 rounded-2xl border transition-all flex items-center gap-3.5 ${
+                          isUnlocked 
+                            ? "bg-gradient-to-br from-emerald-50 to-emerald-100/40 border-emerald-300 hover:border-emerald-400 cursor-pointer" 
+                            : "bg-slate-50 border-slate-150 opacity-60"
+                        }`}
+                        title={isUnlocked ? "Click to copy achievement to clipboard" : "Milestone Locked"}
+                      >
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm font-serif shrink-0 border ${
+                          isUnlocked ? "bg-emerald-500 text-white border-emerald-300" : "bg-slate-200 text-slate-400 border-slate-300"
+                        }`}>
+                          {isUnlocked ? "🏆" : "🔒"}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-black text-slate-900 leading-tight block truncate">{ach.title}</p>
+                          <p className="text-[10px] text-slate-505 leading-tight mt-0.5">{ach.description}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Complete System Logs History */}
+              <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 space-y-4">
+                <div className="flex justify-between items-center border-b pb-3 border-slate-150">
+                  <h4 className="font-bold text-sm text-slate-900 flex items-center gap-1.5 uppercase tracking-wide">
+                    <Activity className="w-4 h-4 text-slate-500 animate-spin" /> Workspace Active Activity Ledger
+                  </h4>
+                  <button 
+                    onClick={handleClearLogs}
+                    className="text-xs text-indigo-600 hover:underline font-bold"
+                  >
+                    Clear history logs
+                  </button>
+                </div>
+
+                <div className="space-y-1.5 font-mono text-xs text-slate-705 max-h-[300px] overflow-y-auto bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                  {logs.map((log, index) => (
+                    <div key={index} className="py-1 border-b border-slate-100 last:border-0 leading-relaxed break-words">
+                      {log}
+                    </div>
+                  ))}
+                  {logs.length === 0 && <p className="text-slate-400 italic">No operations recorded yet.</p>}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ==================== SCREEN 7: SIGN IN PAGE & ACTIVE DISCOVERY SEARCH ==================== */}
+          {activeSection === "signin" && (
+            <div className="space-y-6 text-left" id="view-signin-custom-hull">
+              
+              {/* Introduction Banner */}
+              <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-6 rounded-3xl text-left text-white shadow-xl relative overflow-hidden">
+                <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-indigo-500/10 to-transparent pointer-events-none" />
+                <h3 className="text-xl md:text-2xl font-black text-white flex items-center gap-2">
+                  <User className="w-5 h-5 text-indigo-400" />
+                  <span>Interactive Identity Workshop &amp; Search</span>
+                </h3>
+                <p className="text-xs text-indigo-200 mt-1.5 leading-relaxed max-w-2xl font-sans">
+                  Configure your current active session user coordinates, and search the global BloomBirth network to instantly discover, claim wishlist desires, or synchronize companion birthday alarms.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+                
+                {/* COLUMN 1: Active user session configuration form (Span 6) */}
+                <div className="lg:col-span-6 bg-white rounded-[2rem] border border-slate-200 p-6 shadow-xs flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                        <Sliders className="w-4.5 h-4.5 text-indigo-600" />
+                        <span>Update Identity Coordinates</span>
+                      </h4>
+                      <p className="text-[11px] text-zinc-500 mt-0.5">
+                        These parameters control your self-registry record and calendar presence.
+                      </p>
+                    </div>
+
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!signInName.trim() || !signInUsername.trim() || !signInEmail.trim() || !signInPhone.trim() || !signInWhatsApp.trim()) {
+                          triggerToast("Missing Fields ⚠️", "Provide full legal name, Snapchat handle, phone number, WhatsApp, and email.");
+                          return;
+                        }
+                        const sessionObj = {
+                          name: signInName.trim(),
+                          username: signInUsername.trim().replace(/^@/, ""),
+                          email: signInEmail.trim(),
+                          phone: signInPhone.trim(),
+                          whatsapp: signInWhatsApp.trim(),
+                          birthday: signInBirthday || "1997-06-25",
+                          avatar: signInAvatar || "bg-indigo-600",
+                          interests: signInInterests
+                        };
+                        localStorage.setItem("birthday_authenticated_user", JSON.stringify(sessionObj));
+                        setUserSession(sessionObj);
+                        triggerToast("Session Restructured", `Your active workspace handle is synced to @${sessionObj.username}!`);
+                        appendLog(`🔐 Session Updated: Handle configured to @${sessionObj.username}.`);
+                      }}
+                      className="space-y-3.5 text-left"
+                    >
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Full Legal Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={signInName}
+                          onChange={(e) => setSignInName(e.target.value)}
+                          placeholder="e.g. Alex Patel"
+                          className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 font-sans">Snapchat Handle</label>
+                          <input
+                            type="text"
+                            required
+                            value={signInUsername}
+                            onChange={(e) => setSignInUsername(e.target.value)}
+                            placeholder="e.g. alex_snap"
+                            className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Your Birthday</label>
+                          <input
+                            type="date"
+                            required
+                            value={signInBirthday}
+                            onChange={(e) => setSignInBirthday(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-1.5 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors cursor-pointer"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 font-sans">Phone Number</label>
+                          <input
+                            type="text"
+                            required
+                            value={signInPhone}
+                            onChange={(e) => setSignInPhone(e.target.value)}
+                            placeholder="e.g. +233241234567"
+                            className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 font-sans">WhatsApp Number</label>
+                          <input
+                            type="text"
+                            required
+                            value={signInWhatsApp}
+                            onChange={(e) => setSignInWhatsApp(e.target.value)}
+                            placeholder="e.g. +233241234567"
+                            className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 font-sans">Email Address</label>
+                          <input
+                            type="email"
+                            required
+                            value={signInEmail}
+                            onChange={(e) => setSignInEmail(e.target.value)}
+                            placeholder="e.g. alex@example.com"
+                            className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Avatar Palette Selection */}
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Favorite Avatar Accent</label>
+                        <div className="flex gap-2">
+                          {[
+                            { bg: "bg-teal-500", name: "Teal" },
+                            { bg: "bg-indigo-500", name: "Indigo" },
+                            { bg: "bg-amber-500", name: "Amber" },
+                            { bg: "bg-rose-500", name: "Rose" },
+                            { bg: "bg-emerald-500", name: "Emerald" },
+                            { bg: "bg-pink-500", name: "Plum" }
+                          ].map(pal => (
+                            <button
+                              key={pal.bg}
+                              type="button"
+                              onClick={() => setSignInAvatar(pal.bg)}
+                              className={`w-7 h-7 rounded-lg transition-transform hover:scale-110 flex items-center justify-center cursor-pointer relative ${pal.bg} ${
+                                signInAvatar === pal.bg ? "ring-2 ring-indigo-600 ring-offset-2 ring-offset-white scale-105" : "opacity-75"
+                              }`}
+                              title={pal.name}
+                            >
+                              {signInAvatar === pal.bg && <Check className="w-3.5 h-3.5 text-white stroke-[3.5]" />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Dynamic Interests Choice Box */}
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Select Main Interest Niches</label>
+                        <div className="flex flex-wrap gap-1.5 font-sans">
+                          {[
+                            "Photography", "Specialty Coffee", "Cyberpunk Novels", "Mechanic Keyboards",
+                            "Yoga & Zen", "Hiking & Trails", "Baking Cakes", "Guitar Instrumental", "Modern Design"
+                          ].map(tag => {
+                            const isChosen = signInInterests.includes(tag);
+                            return (
+                              <button
+                                key={tag}
+                                type="button"
+                                onClick={() => {
+                                  if (isChosen) {
+                                    setSignInInterests(prev => prev.filter(t => t !== tag));
+                                  } else {
+                                    setSignInInterests(prev => [...prev, tag]);
+                                  }
+                                }}
+                                className={`px-2 py-1.5 rounded-lg text-[9px] font-bold font-sans tracking-tight transition-colors cursor-pointer border ${
+                                  isChosen 
+                                    ? "bg-indigo-50 text-indigo-600 border-indigo-200 font-extrabold" 
+                                    : "bg-slate-50 text-slate-500 border-slate-200 hover:text-slate-800"
+                                }`}
+                              >
+                                {tag}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="w-full text-center bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white py-3 rounded-2xl font-black text-xs transition-all shadow-xl shadow-indigo-150 tracking-wide cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <CheckCheck className="w-4 h-4" />
+                        <span>Update Workspace Session</span>
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
+                {/* COLUMN 2: Companion Search Bar & Explorer list to "add up others to it" (Span 6) */}
+                <div className="lg:col-span-6 bg-white rounded-[2rem] border border-slate-200 p-6 shadow-xs flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                        <Search className="w-4.5 h-4.5 text-indigo-650 animate-pulse" />
+                        <span>Companion Network Search</span>
+                      </h4>
+                      <p className="text-[11px] text-zinc-500 mt-0.5">
+                        Add others to your circle by discovering handles, interests, or names.
+                      </p>
+                    </div>
+
+                    {/* Integrated Search Bar */}
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-4 w-4 text-slate-400" />
+                      </span>
+                      <input
+                        type="text"
+                        value={signinSearchQuery}
+                        onChange={(e) => setSigninSearchQuery(e.target.value)}
+                        placeholder="Search by name, @handle or tags (e.g. baking, barbecue, zen)..."
+                        className="w-full bg-slate-50 hover:bg-slate-100/60 transition-colors border border-slate-200 rounded-xl pl-9 pr-8 py-2.5 text-xs text-slate-800 font-sans focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                      />
+                      {signinSearchQuery && (
+                        <button
+                          onClick={() => setSigninSearchQuery("")}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-450 hover:text-slate-650 cursor-pointer"
+                        >
+                          <X className="w-4.5 h-4.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Matches directory rendering */}
+                    <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
+                      {(() => {
+                        const query = signinSearchQuery.toLowerCase().trim();
+                        
+                        const filteredProfiles = MOCK_EXTERNAL_PROFILES.filter(p => {
+                          if (!query) return true;
+                          return (
+                            p.name.toLowerCase().includes(query) ||
+                            p.username.toLowerCase().includes(query) ||
+                            p.interests.some(i => i.toLowerCase().includes(query))
+                          );
+                        });
+
+                        if (filteredProfiles.length === 0) {
+                          return (
+                            <div className="bg-slate-50 rounded-2xl border border-slate-200 p-8 text-center text-xs text-slate-400 font-semibold leading-relaxed">
+                              No profiles match search query. Try lookups like &quot;clara&quot;, &quot;david&quot;, or hobbies like &quot;cozy&quot; or &quot;coffee&quot;.
+                            </div>
+                          );
+                        }
+
+                        return filteredProfiles.map((p) => {
+                          const isConnected = friends.some((f) => f.id === p.id);
+
+                          return (
+                            <div 
+                              key={p.id}
+                              className="p-3.5 bg-slate-50/60 hover:bg-slate-50 border border-slate-150 rounded-2xl transition flex items-start justify-between gap-3 text-left"
+                            >
+                              <div className="flex items-start gap-2.5 min-w-0">
+                                <span className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center font-bold text-xs text-white shrink-0 ${p.avatar}`}>
+                                  {p.name.split(" ").map(n => n[0]).join("")}
+                                </span>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-black text-slate-800 truncate leading-tight block">{p.name}</span>
+                                  </div>
+                                  <span className="text-[10px] text-indigo-600 font-mono font-extrabold block">@{p.username}</span>
+                                  <span className="text-[9.5px] text-slate-400 block mt-0.5">🍰 Birthday: {p.birthday.substring(5)} ({p.age} yrs old)</span>
+
+                                  {/* Interests micro tags */}
+                                  <div className="flex flex-wrap gap-1 mt-1.5">
+                                    {p.interests.slice(0, 3).map((tag, i) => (
+                                      <span key={i} className="text-[8.5px] font-bold text-slate-500 bg-slate-200/50 px-1.5 py-0.2 rounded">
+                                        #{tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {isConnected ? (
+                                <span className="bg-emerald-50 text-emerald-600 text-[10px] font-black px-2.5 py-1.5 rounded-xl flex items-center gap-1 shrink-0 select-none border border-emerald-500/20">
+                                  <Check className="w-3 h-3 stroke-[3.5]" />
+                                  <span>Added</span>
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setPendingConnectProfile(p);
+                                    setShowRelationModal(true);
+                                  }}
+                                  className="text-[10px] font-black text-white bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-xl transition shadow-sm cursor-pointer shrink-0"
+                                >
+                                  Connect +
+                                </button>
+                              )}
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+
+                  </div>
+
+                  {/* Info panel */}
+                  <div className="bg-[#FAF9FF] border border-indigo-100 p-3 rounded-2xl flex gap-2.5 mt-4 items-start">
+                    <Info className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
+                    <p className="text-[10.5px] text-slate-500 leading-normal">
+                      Adding companions here immediately registers their profiles, schedules automated celebration calendar tags, and schedules the live simulated posting of their wishlist targets.
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          )}
+
+          {/* ==================== SCREEN 8: PREMIUM PLANS & SYSTEM CONFIGURATION ==================== */}
+          {activeSection === "upgrade" && (
+            <div className="space-y-6 text-left animate-fade-in" id="view-upgrade-hull">
+              {/* Top Banner */}
+              <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-6 rounded-3xl text-left text-white shadow-xl relative overflow-hidden">
+                <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-indigo-500/10 pointer-events-none blur-3xl opacity-30" />
+                <h3 className="text-xl md:text-2xl font-black text-white flex items-center gap-2">
+                  <Sparkles className="w-6 h-6 text-indigo-400" />
+                  <span>Premium Plan Tiers &amp; System Configuration</span>
+                </h3>
+                <p className="text-xs text-indigo-200 mt-1.5 leading-relaxed max-w-xl font-sans">
+                  Manage your subscription level, toggle email reminders settings, customize handles, or bulk-import members for corporate campaigns.
+                </p>
+              </div>
+
+              {/* Two-Column Workspace */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                {/* Column 1: Pricing Tiers & Subscription (Span 7) */}
+                <div className="lg:col-span-7 bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 shadow-xs space-y-6">
+                  <div>
+                    <h4 className="font-extrabold text-sm text-slate-900 uppercase tracking-wide flex items-center gap-2">
+                      👑 Subscription Plans Desk
+                    </h4>
+                    <p className="text-xs text-slate-500 font-sans">
+                      Select a tier suited to your tracking scale. Payments are fully simulated inside our Ghana GHS sandbox gateway.
+                    </p>
+                  </div>
+
+                  {/* Grid of Plans */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Free Plan */}
+                    <div className={`p-5 rounded-2xl border flex flex-col justify-between ${accountType === "Free" ? "bg-amber-500/5 border-amber-400 ring-2 ring-amber-400" : "bg-slate-50 border-slate-200 opacity-80"}`}>
+                      <div>
+                        {accountType === "Free" && <span className="bg-amber-500 text-slate-950 font-black tracking-widest text-[8px] uppercase px-2 py-0.5 rounded-full block w-fit mb-3">Active Now</span>}
+                        <h5 className="font-extrabold text-sm text-slate-900">Free Tier</h5>
+                        <p className="text-[10px] text-slate-500 mt-1">For basic tracking needs.</p>
+                        <div className="my-3">
+                          <span className="text-xl font-black text-slate-900">GHS 0</span>
+                          <span className="text-[10px] text-slate-400">/mo</span>
+                        </div>
+                        <ul className="text-[10px] space-y-1.5 text-slate-650 font-semibold leading-tight">
+                          <li className="flex items-center gap-1"><span className="text-emerald-500 text-xs">✓</span> Max 5 friends</li>
+                          <li className="flex items-center gap-1"><span className="text-emerald-500 text-xs">✓</span> In-app alerts</li>
+                          <li className="flex items-center gap-1 text-slate-400"><span className="text-slate-300">✕</span> Email Reminders</li>
+                          <li className="flex items-center gap-1 text-slate-400"><span className="text-slate-300">✕</span> Bulk CSV imports</li>
+                        </ul>
+                      </div>
+                      <button 
+                        disabled={accountType === "Free"}
+                        onClick={() => {
+                          setAccountType("Free");
+                          triggerToast("Switched to Free plan", "Reverted account to standard Free limit.");
+                          appendLog("💳 Transaction: Member plan changed to Free.");
+                        }}
+                        className={`w-full py-1.8 mt-4 rounded-xl text-[10px] font-bold ${accountType === "Free" ? "bg-amber-400 text-slate-950 cursor-default" : "bg-slate-200 hover:bg-slate-300 text-slate-700 pointer-events-auto cursor-pointer"}`}
+                      >
+                        {accountType === "Free" ? "Active" : "Downgrade"}
+                      </button>
+                    </div>
+
+                    {/* Pro Plan */}
+                    <div className={`p-5 rounded-2xl border flex flex-col justify-between ${accountType === "Pro" ? "bg-[#FAF9FF] border-indigo-500 ring-2 ring-indigo-500" : "bg-slate-50 border-slate-200"}`}>
+                      <div>
+                        {accountType === "Pro" && <span className="bg-indigo-600 text-white font-black tracking-widest text-[8px] uppercase px-2 py-0.5 rounded-full block w-fit mb-3">Active Now</span>}
+                        <h5 className="font-extrabold text-sm text-slate-900">Pro VIP</h5>
+                        <p className="text-[10px] text-slate-500 mt-1">For true gift organizers.</p>
+                        <div className="my-3">
+                          <span className="text-xl font-black text-slate-900">GHS 15</span>
+                          <span className="text-[10px] text-slate-400">/mo</span>
+                        </div>
+                        <ul className="text-[10px] space-y-1.5 text-slate-650 font-semibold leading-tight">
+                          <li className="flex items-center gap-1 text-indigo-950 font-bold"><span className="text-emerald-500 text-xs">✓</span> Unlimited friends</li>
+                          <li className="flex items-center gap-1"><span className="text-emerald-500 text-xs">✓</span> 7d and 1d warnings</li>
+                          <li className="flex items-center gap-1"><span className="text-emerald-500 text-xs">✓</span> 📧 Optional Email alerts</li>
+                          <li className="flex items-center gap-1 text-slate-400"><span className="text-slate-300">✕</span> Bulk CSV imports</li>
+                        </ul>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          setAccountType("Pro");
+                          triggerToast("Upgraded to Pro VIP 👑", "Unlocked infinite buddy profiles, active 7d and 1d warning flags, and active email syncing.");
+                          appendLog("💳 Transaction: Member plan upgraded to Pro VIP (GHS 15.00/month). unlimited slots provisioned.");
+                        }}
+                        className={`w-full py-1.8 mt-4 rounded-xl text-[10px] font-bold ${accountType === "Pro" ? "bg-indigo-600 text-white cursor-default" : "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 cursor-pointer"}`}
+                      >
+                        {accountType === "Pro" ? "Active Plan 👑" : "Upgrade to Pro"}
+                      </button>
+                    </div>
+
+                    {/* Business Plan */}
+                    <div className={`p-5 rounded-2xl border flex flex-col justify-between ${accountType === "Business" ? "bg-emerald-50/50 border-emerald-500 ring-2 ring-emerald-500" : "bg-slate-50 border-slate-200"}`}>
+                      <div>
+                        {accountType === "Business" && <span className="bg-emerald-600 text-white font-black tracking-widest text-[8px] uppercase px-2 py-0.5 rounded-full block w-fit mb-3">Active Now</span>}
+                        <h5 className="font-extrabold text-sm text-slate-900">Business Elite</h5>
+                        <p className="text-[10px] text-slate-500 mt-1">For clubs &amp; retail circles.</p>
+                        <div className="my-3">
+                          <span className="text-xl font-black text-slate-900">GHS 200</span>
+                          <span className="text-[10px] text-slate-400">/mo</span>
+                        </div>
+                        <ul className="text-[10px] space-y-1.5 text-slate-650 font-semibold leading-tight">
+                          <li className="flex items-center gap-1 text-emerald-950 font-bold"><span className="text-emerald-500 text-xs">✓</span> Unlimited friends</li>
+                          <li className="flex items-center gap-1"><span className="text-emerald-500 text-xs">✓</span> Email &amp; Mass alerts</li>
+                          <li className="flex items-center gap-1 text-emerald-900"><span className="text-emerald-500 text-xs">✓</span> 💼 Customers Bulk Import</li>
+                          <li className="flex items-center gap-1"><span className="text-emerald-500 text-xs">✓</span> Custom design templates</li>
+                        </ul>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          setAccountType("Business");
+                          triggerToast("Upgraded to Business Elite 💼", "Bulk importer enabled. Mass customer lists loaded.");
+                          appendLog("💳 Transaction: Member plan changed to Business Elite (GHS 200.00/month). Bulk importers provisioned.");
+                        }}
+                        className={`w-full py-1.8 mt-4 rounded-xl text-[10px] font-bold ${accountType === "Business" ? "bg-emerald-600 text-white cursor-default" : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 cursor-pointer"}`}
+                      >
+                        {accountType === "Business" ? "Active Plan 💼" : "Upgrade Business"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 💼 BUSINESS BULK BIRTHDAYS IMPORTER SUB CARD */}
+                  <div className="p-5 rounded-2xl border border-slate-200 bg-slate-50 space-y-3 text-left">
+                    <span className="text-xs font-black text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                      <Users className="w-4 h-4 text-emerald-600" />
+                      <span>💼 Business Customer/Member Bulk Importer</span>
+                    </span>
+                    <p className="text-[11px] text-slate-500 leading-normal font-sans">
+                      Copy and paste customer/member birthday rosters to register lists in bulk. Paste one record per line as: <code className="bg-slate-200 px-1 py-0.5 rounded text-indigo-700 text-[10px] font-mono">Full Name, Birthday (YYYY-MM-DD), WhatsApp Phone, Snapchat Username, Category</code>
+                    </p>
+
+                    {accountType !== "Business" ? (
+                      <div className="p-4 bg-amber-500/5 rounded-xl border border-amber-200 text-left space-y-2 font-sans">
+                        <p className="text-[11.5px] text-amber-900 font-bold">🔒 Feature Locked to Business Elite Plan</p>
+                        <p className="text-[10.5px] text-slate-600">
+                          Bulk roster importing is exclusively unlocked for Business Elite members (GHS 200/month) to track customer lists effortlessly.
+                        </p>
+                        <button 
+                          onClick={() => {
+                            setAccountType("Business");
+                            triggerToast("Upgraded successfully! 💼", "Unlocked Business Bulk Importer.");
+                          }}
+                          className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-lg text-xs cursor-pointer shadow-xs transition-all animate-bounce"
+                        >
+                          Upgrade Plan to Business (GHS 200/mo)
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 font-sans">
+                        <textarea
+                          rows={4}
+                          value={bulkImportText}
+                          onChange={(e) => setBulkImportText(e.target.value)}
+                          placeholder="e.g.&#10;Kofi Mensah, 1994-06-12, +233241112222, kofi_snap, VIP Customer&#10;Ama Serwaa, 1996-06-15, +233243334444, ama_serwaa_snap, Member"
+                          className="w-full bg-white border border-slate-250 rounded-xl p-3 text-xs font-mono text-zinc-805 text-zinc-800 focus:outline-[#818CF8]"
+                        />
+                        <button
+                          onClick={() => {
+                            if (!bulkImportText.trim()) {
+                              triggerToast("Empty Roster Data", "Ensure pasting at least one valid line first.");
+                              return;
+                            }
+                            
+                            const lines = bulkImportText.split("\n").filter(l => l.trim() !== "");
+                            let countImported = 0;
+                            const createdFriends: Friend[] = [];
+
+                            lines.forEach(line => {
+                              const segments = line.split(",").map(s => s.trim());
+                              if (segments.length >= 2) {
+                                const name = segments[0];
+                                const bday = segments[1];
+                                const rawPhone = segments[2];
+                                const rawSnap = segments[3];
+                                const rawRel = segments[4];
+                                const companionId = name.toLowerCase().replace(/\s+/g, "-");
+                                
+                                // Simple date check YYYY-MM-DD
+                                if (bday && bday.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                                  createdFriends.push({
+                                    id: companionId,
+                                    name: name,
+                                    birthday: bday,
+                                    phone: rawPhone || "+233241234567",
+                                    snapchat: rawSnap || "customer_snap",
+                                    relationship: rawRel || "Customer",
+                                    interests: ["Specialty Coffee", "Local Crafts", "Corporate Events"],
+                                    age: "30",
+                                    avatar: "bg-indigo-600",
+                                    wishlist: [
+                                      {
+                                        id: `wish-bulk-${Date.now()}-${countImported}`,
+                                        title: "Corporate Recognition Package",
+                                        price: "GHS 100.00",
+                                        url: "",
+                                        isClaimed: false
+                                      }
+                                    ],
+                                    achievements: []
+                                  });
+                                  countImported++;
+                                }
+                              }
+                            });
+
+                            if (countImported > 0) {
+                              setFriends(prev => [...prev, ...createdFriends]);
+                              setBulkImportText("");
+                              triggerToast(`Successfully Imported! 🎉`, `Added ${countImported} members/customers cleanly to your active list roster.`);
+                              appendLog(`💼 Bulk import: Processed ${countImported} customer records into buddies registry list.`);
+                            } else {
+                              triggerToast("Import Parsing Error", "No lines matched the exact pattern (Name, YYYY-MM-DD). Please check commas.");
+                            }
+                          }}
+                          className="px-4.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-lg transition-all cursor-pointer"
+                        >
+                          Process &amp; Bulk Import Roster ({bulkImportText.split("\n").filter(l => l.trim().length > 0).length} records)
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Column 2: User Settings & Alerts Config (Span 5) */}
+                <div className="lg:col-span-12 xl:col-span-5 bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 shadow-xs space-y-6">
+                  <div>
+                    <h4 className="font-extrabold text-sm text-slate-900 uppercase tracking-wide flex items-center gap-2">
+                      🛠 flex 🛠️ Personal Credentials &amp; Alerts Settings
+                    </h4>
+                    <p className="text-xs text-slate-500 font-sans">
+                      Inputs are taken during signup or profile sessions and used to customize pre-filled greeting links.
+                    </p>
+                  </div>
+
+                  {/* Form fields for settings */}
+                  <div className="space-y-4 font-sans">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">My Snapchat Username</label>
+                      <input 
+                        type="text" 
+                        value={snapchatUsername}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSnapchatUsername(val);
+                          if (userSession) {
+                            const nextSess = { ...userSession, snapchatUsername: val };
+                            setUserSession(nextSess);
+                            localStorage.setItem("birthday_authenticated_user", JSON.stringify(nextSess));
+                          }
+                          triggerToast("Settings Update", "Custom snapchat handle updated.");
+                        }}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-100 focus:outline-[#818CF8] font-mono text-zinc-850"
+                        placeholder="alex_snap"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">My WhatsApp Phone</label>
+                      <input 
+                        type="text" 
+                        value={whatsappNumber}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setWhatsappNumber(val);
+                          if (userSession) {
+                            const nextSess = { ...userSession, whatsappNumber: val };
+                            setUserSession(nextSess);
+                            localStorage.setItem("birthday_authenticated_user", JSON.stringify(nextSess));
+                          }
+                          triggerToast("Settings Update", "Custom WhatsApp phone updated.");
+                        }}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-100 focus:outline-[#818CF8] font-mono text-zinc-850"
+                        placeholder="+233241234567"
+                      />
+                    </div>
+
+                    {/* Checkbox toggle option alerts */}
+                    <div className="pt-2 border-t border-slate-100">
+                      <label className="flex items-start gap-3 p-3.5 bg-slate-50 hover:bg-slate-100/50 rounded-xl border border-slate-200 transition-all cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={enableEmailReminders}
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            setEnableEmailReminders(val);
+                            if (userSession) {
+                              const nextSess = { ...userSession, enableEmailReminders: val };
+                              setUserSession(nextSess);
+                              localStorage.setItem("birthday_authenticated_user", JSON.stringify(nextSess));
+                            }
+                            triggerToast(
+                              val ? "Email Alerts Enabled 📧" : "Email Alerts Disabled 🔇", 
+                              val ? "Warnings will simulate sending email reminders 7 days and 1 day prior." : "Alerts will remain strictly sandbox in-app notifications."
+                            );
+                            appendLog(`⚙️ Config: Email alert warning dispatcher is set to ${val ? "active" : "inactive"}.`);
+                          }}
+                          className="indigo-checkbox w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 mt-0.5 cursor-pointer"
+                        />
+                        <div>
+                          <span className="text-xs font-black text-slate-900 block leading-tight">Enable Simulated Email Reminders</span>
+                          <span className="text-[10px] text-slate-500 mt-1 leading-relaxed block">
+                            Once enabled, a copy of 7-day warning alerts and 1-day warnings we parse on load will simulate delivery to <strong>{userSession?.email || "thefitfola@gmail.com"}</strong>.
+                          </span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Operational Status overview */}
+                  <div className="p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl text-[10.5px] text-slate-550 leading-relaxed font-semibold">
+                    💡 <strong>Simulate Warnings:</strong> When you modify settings or register others, the load checker triggers alerts automatically. Open your notification drawer in the top right header navigation bar to inspect active alerting logs.
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+        </div>
+
+      </main>
+
+      {/* MOBILE STICKY BOTTOM NAVIGATION BAR */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900 border-t border-slate-800 flex justify-around items-center px-1 z-40 shadow-2xl pb-2.5 pt-1" id="mobile-bottom-navigation">
+        <button
+          onClick={() => {
+            setActiveSection("dashboard");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          className={`flex-1 flex flex-col items-center justify-center py-1.5 transition-all cursor-pointer ${
+            activeSection === "dashboard" ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
+          }`}
+          title="Executive Deck"
+        >
+          <Home className="w-4.5 h-4.5 mb-0.5" />
+          <span className="text-[9px] font-bold tracking-tight">Deck</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveSection("registry");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          className={`flex-1 flex flex-col items-center justify-center py-1.5 relative transition-all cursor-pointer ${
+            activeSection === "registry" ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
+          }`}
+          title="Buddies Registry"
+        >
+          <Users className="w-4.5 h-4.5 mb-0.5" />
+          <span className="text-[9px] font-bold tracking-tight">Buddies</span>
+          <span className="absolute top-1 right-3.5 bg-slate-850 text-[8px] px-1 rounded text-indigo-300 font-mono font-bold scale-75 border border-slate-700/60">
+            {friends.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveSection("ai-lab");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          className={`flex-1 flex flex-col items-center justify-center py-1.5 transition-all cursor-pointer ${
+            activeSection === "ai-lab" ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
+          }`}
+          title="Smart AI Gift Lab"
+        >
+          <Wand2 className="w-4.5 h-4.5 mb-0.5" />
+          <span className="text-[9px] font-bold tracking-tight">Gift AI</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveSection("my-wishlist");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          className={`flex-1 flex flex-col items-center justify-center py-1.5 transition-all cursor-pointer ${
+            activeSection === "my-wishlist" ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
+          }`}
+          title="Alex's Wishlist Hub"
+        >
+          <Gift className="w-4.5 h-4.5 mb-0.5" />
+          <span className="text-[9px] font-bold tracking-tight">My Wish</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveSection("widgets");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          className={`flex-1 flex flex-col items-center justify-center py-1.5 transition-all cursor-pointer ${
+            activeSection === "widgets" ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
+          }`}
+          title="Widget Simulator"
+        >
+          <Smartphone className="w-4.5 h-4.5 mb-0.5" />
+          <span className="text-[9px] font-bold tracking-tight">Widgets</span>
+        </button>
+
+         <button
+          onClick={() => {
+            setActiveSection("achievements");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          className={`flex-1 flex flex-col items-center justify-center py-1.5 transition-all cursor-pointer ${
+            activeSection === "achievements" ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
+          }`}
+          title="Milestones &amp; Logs"
+        >
+          <Award className="w-4.5 h-4.5 mb-0.5" />
+          <span className="text-[9px] font-bold tracking-tight">Trophies</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveSection("upgrade");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          className={`flex-1 flex flex-col items-center justify-center py-1.5 transition-all cursor-pointer ${
+            activeSection === "upgrade" ? "text-amber-400 font-black scale-105" : "text-amber-500/70 hover:text-amber-300"
+          }`}
+          title="Premium Plan Tiers"
+        >
+          <Sparkles className="w-4.5 h-4.5 mb-0.5" />
+          <span className="text-[9px] font-bold tracking-tight">Premium</span>
+        </button>
+
+
+      </nav>
+
+    </div>
+  );
+}

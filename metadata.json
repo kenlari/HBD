@@ -1,0 +1,6 @@
+{
+  "name": "Birthday Bud & Wishlist",
+  "description": "An interactive full-stack app that reminds friends of birthdays, suggests personalized gifts using Gemini AI, unlocks shared achievements, displays user wishlists, and offers custom lock/home widgets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
