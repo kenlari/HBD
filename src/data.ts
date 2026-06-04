@@ -9,6 +9,7 @@ export const INITIAL_FRIENDS: Friend[] = [
     age: "29",
     interests: ["Photography", "Specialty Coffee", "Cyberpunk Novels", "Mechanic Keyboards"],
     avatar: "bg-teal-500",
+    connectedBack: true,
     wishlist: [
       {
         id: "alexw-1",
@@ -58,6 +59,7 @@ export const INITIAL_FRIENDS: Friend[] = [
     age: "27",
     interests: ["Watercolor Painting", "Matcha Latte", "Cozy Indie Games", "Thrift Shopping"],
     avatar: "bg-fuchsia-500",
+    connectedBack: true,
     wishlist: [
       {
         id: "jamiew-1",
@@ -93,6 +95,7 @@ export const INITIAL_FRIENDS: Friend[] = [
     age: "31",
     interests: ["Trail Running", "Sci-Fi Podcasts", "Arduino Coding", "Spicy Foods"],
     avatar: "bg-indigo-500",
+    connectedBack: false,
     wishlist: [
       {
         id: "jordanw-1",
@@ -127,6 +130,7 @@ export const INITIAL_FRIENDS: Friend[] = [
     age: "28",
     interests: ["Retro Vinyl", "Electric Skateboards", "Houseplants", "Pour Over Brews"],
     avatar: "bg-amber-500",
+    connectedBack: false,
     wishlist: [
       {
         id: "taylorw-1",
@@ -162,6 +166,7 @@ export const INITIAL_FRIENDS: Friend[] = [
     age: "30",
     interests: ["Baking Sourdough", "Gym Lifting", "Espresso Gear", "Cinematography"],
     avatar: "bg-rose-500",
+    connectedBack: false,
     wishlist: [
       {
         id: "rileyw-1",

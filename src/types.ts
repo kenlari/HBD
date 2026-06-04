@@ -29,6 +29,7 @@ export interface Friend {
   snapchat?: string;
   whatsapp?: string;
   email?: string;
+  connectedBack?: boolean; // Must be true to view their private data
 }
 
 export interface GiftSuggestion {
@@ -55,4 +56,17 @@ export interface InAppNotification {
   timestamp: string;
   isRead: boolean;
 }
+
+export interface SentGift {
+  id: string;
+  friendId: string;
+  friendName: string;
+  giftType: "rose" | "bouquet" | "money";
+  giftName: string;
+  price: string;
+  status: "Sent" | "Delivered";
+  message: string;
+  dateSent: string;
+}
+
 

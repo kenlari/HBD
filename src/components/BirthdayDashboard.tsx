@@ -7,12 +7,11 @@ import { Friend } from "../types";
 // BirthdayDashboard — drop into src/components/
 // Shows upcoming birthdays sorted by soonest first
 // Props:
-//   friends          → Friend[] from App state
-//   userName         → logged-in user's name
-//   onViewFriend()   → navigate to Registry for that friend
-//   onOpenGiftAI()   → navigate to AI Lab
+// friends → Friend[] from App state
+// userName → logged-in user's name
+// onViewFriend() → navigate to Registry for that friend
+// onOpenGiftAI() → navigate to AI Lab
 // ─────────────────────────────────────────────
-
 interface BirthdayDashboardProps {
   friends: Friend[];
   userName: string;
@@ -53,7 +52,7 @@ function getDaysLabel(days: number): string {
 function openWhatsApp(friend: Friend) {
   const phone = (friend as any).whatsapp || (friend as any).phone || "";
   const msg = encodeURIComponent(
-    `🎉 Happy Birthday ${friend.name.replace(" (You)", "")}! 🎂 Wishing you an incredible day filled with joy and celebration! 🥳`
+    `🎉 Happy Birthday ${friend.name.replace(" (You)", "")}! Wishing you an incredible day! 🎂💖`
   );
   if (phone) {
     const cleaned = phone.replace(/\D/g, "");
@@ -85,16 +84,15 @@ export function BirthdayDashboard({
 
   return (
     <div className="space-y-6">
-
       {/* Welcome Banner */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-indigo-600/20 via-slate-900 to-teal-600/10 border border-indigo-500/20 rounded-2xl p-5"
+        className="bg-gradient-to-r from-indigo-600/20 via-slate-900 to-teal-600/10 border border-slate-800 p-6 rounded-2xl"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-indigo-600/30">
-            {firstName[0].toUpperCase()}
+        <div className="flex items-center gap-3 animate-fade-in text-left">
+          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-sm shrink-0">
+            {firstName ? firstName[0].toUpperCase() : "U"}
           </div>
           <div>
             <h2 className="font-black text-white text-base">
@@ -110,15 +108,15 @@ export function BirthdayDashboard({
 
         {/* Quick stats */}
         <div className="grid grid-cols-3 gap-3 mt-4">
-          <div className="bg-slate-900/60 rounded-xl p-3 text-center border border-slate-800/60">
+          <div className="bg-slate-900/60 rounded-xl p-3 text-center border border-slate-800/50">
             <div className="text-lg font-black text-indigo-400">{sorted.length}</div>
             <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">Friends</div>
           </div>
-          <div className="bg-slate-900/60 rounded-xl p-3 text-center border border-slate-800/60">
+          <div className="bg-slate-900/60 rounded-xl p-3 text-center border border-slate-800/50">
             <div className="text-lg font-black text-yellow-400">{todayBirthdays.length}</div>
             <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">Today</div>
           </div>
-          <div className="bg-slate-900/60 rounded-xl p-3 text-center border border-slate-800/60">
+          <div className="bg-slate-900/60 rounded-xl p-3 text-center border border-slate-800/50">
             <div className="text-lg font-black text-orange-400">{soonBirthdays.length}</div>
             <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">This Month</div>
           </div>
@@ -219,7 +217,7 @@ export function BirthdayDashboard({
           animate={{ opacity: 1 }}
           className="text-center py-16 space-y-3"
         >
-          <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto">
+          <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto text-slate-600">
             <Cake className="w-8 h-8 text-slate-600" />
           </div>
           <h4 className="font-bold text-slate-400 text-sm">No friends added yet</h4>
@@ -233,8 +231,8 @@ export function BirthdayDashboard({
 }
 
 // ─── Individual Friend Birthday Card ───────────
-
 interface FriendBirthdayCardProps {
+  key?: string;
   friend: Friend;
   days: number;
   index: number;
@@ -259,13 +257,13 @@ function FriendBirthdayCard({
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.05 }}
-      className={`bg-slate-900/80 border rounded-2xl p-4 flex items-center gap-3 group transition-all hover:border-indigo-500/30 ${
+      className={`bg-slate-900/80 border rounded-2xl p-4 flex items-center gap-3 group transition-colors text-left ${
         isToday ? "border-yellow-400/30 bg-yellow-400/5" : "border-slate-800"
       }`}
     >
       {/* Avatar */}
       <div
-        className={`w-11 h-11 ${friend.avatar} rounded-xl flex items-center justify-center text-white font-black text-base shadow-lg flex-shrink-0`}
+        className={`w-11 h-11 ${friend.avatar} rounded-xl flex items-center justify-center text-white font-black text-base shrink-0`}
       >
         {friend.name.replace(" (You)", "")[0].toUpperCase()}
       </div>
@@ -273,12 +271,12 @@ function FriendBirthdayCard({
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-bold text-sm text-white truncate">
+          <span className="font-bold text-sm text-white truncate text-left block">
             {friend.name.replace(" (You)", "")}
           </span>
           {isToday && (
-            <span className="text-[9px] bg-yellow-400/20 text-yellow-300 font-bold px-1.5 py-0.5 rounded-full border border-yellow-400/30 animate-pulse">
-              🎉 TODAY
+            <span className="text-[9px] bg-yellow-400/20 text-yellow-300 font-bold px-1.5 py-0.5 rounded">
+              TODAY 🎉
             </span>
           )}
         </div>
@@ -299,7 +297,7 @@ function FriendBirthdayCard({
       </div>
 
       {/* Days badge */}
-      <div className={`text-[10px] font-black px-2.5 py-1.5 rounded-xl border flex-shrink-0 text-center min-w-[52px] ${urgencyClass}`}>
+      <div className={`text-[10px] font-black px-2.5 py-1.5 rounded-xl border flex-shrink-0 ${urgencyClass}`}>
         {getDaysLabel(days)}
       </div>
 
@@ -309,7 +307,7 @@ function FriendBirthdayCard({
         <button
           onClick={() => openWhatsApp(friend)}
           title="Send WhatsApp birthday message"
-          className="w-8 h-8 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 hover:border-green-500/40 rounded-xl flex items-center justify-center transition-all"
+          className="w-8 h-8 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400 rounded-xl flex items-center justify-center transition cursor-pointer"
         >
           <MessageCircle className="w-3.5 h-3.5 text-green-400" />
         </button>
@@ -318,7 +316,7 @@ function FriendBirthdayCard({
         <button
           onClick={() => onOpenGiftAI(friend.id)}
           title="Get AI gift ideas"
-          className="w-8 h-8 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 hover:border-indigo-500/40 rounded-xl flex items-center justify-center transition-all"
+          className="w-8 h-8 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center transition cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
         </button>
@@ -327,7 +325,7 @@ function FriendBirthdayCard({
         <button
           onClick={() => onViewFriend(friend.id)}
           title="View profile"
-          className="w-8 h-8 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center transition-all"
+          className="w-8 h-8 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center cursor-pointer transition text-slate-400"
         >
           <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
         </button>

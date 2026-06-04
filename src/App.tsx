@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { INITIAL_FRIENDS, ALL_ACHIEVEMENTS_LIST } from "./data";
-import { Friend, WishlistItem, Achievement, GiftSuggestion, InAppNotification } from "./types";
+import { Friend, WishlistItem, Achievement, GiftSuggestion, InAppNotification, SentGift } from "./types";
 import { WidgetSimulator } from "./components/WidgetSimulator";
 import { MOCK_EXTERNAL_PROFILES, MockProfile } from "./mockProfiles";
+import { QrScanner } from "./components/QrScanner";
 import { 
   Gift, 
   Calendar, 
@@ -43,11 +44,16 @@ import {
   MessageSquare,
   CheckCircle,
   HelpCircle,
-  Volume2
+  Volume2,
+  Camera,
+  QrCode,
+  Lock,
+  EyeOff
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { LoginPage } from "./components/LoginPage";
 import { BirthdayDashboard } from "./components/BirthdayDashboard";
+
 
 export default function App() {
   // --- AUTHENTICATED USER SESSION STATE ---
@@ -111,6 +117,8 @@ export default function App() {
   }, [userSession]);
 
   // --- SIGN IN FORM STATE CONTROLLERS ---
+  const [isLoggingIn, setIsLoggingIn] = useState<boolean>(true);
+  const [signInPassword, setSignInPassword] = useState<string>("");
   const [signInName, setSignInName] = useState<string>("");
   const [signInUsername, setSignInUsername] = useState<string>(() => {
     const saved = localStorage.getItem("birthday_authenticated_user");
@@ -166,8 +174,112 @@ export default function App() {
 
   // Track the active interactive workspace section
   const [activeSection, setActiveSection] = useState<
-    "dashboard" | "registry" | "ai-lab" | "my-wishlist" | "widgets" | "achievements" | "signin" | "upgrade"
+    "dashboard" | "registry" | "ai-lab" | "gift-store" | "my-wishlist" | "widgets" | "achievements" | "profile" | "settings" | "upgrade"
   >("dashboard");
+
+  // Important Configuration Settings
+  const [notifyWhatsApp, setNotifyWhatsApp] = useState<boolean>(() => {
+    const saved = localStorage.getItem("hbd_settings_notify_whatsapp");
+    return saved ? saved === "true" : true;
+  });
+  const [notifySnapchat, setNotifySnapchat] = useState<boolean>(() => {
+    const saved = localStorage.getItem("hbd_settings_notify_snapchat");
+    return saved ? saved === "true" : true;
+  });
+  const [notifyAdvanceDays, setNotifyAdvanceDays] = useState<number>(() => {
+    const saved = localStorage.getItem("hbd_settings_advance_days");
+    return saved ? parseInt(saved, 10) : 3;
+  });
+  const [globalVisibility, setGlobalVisibility] = useState<"Public" | "Linked" | "Private">(() => {
+    const saved = localStorage.getItem("hbd_settings_visibility");
+    return (saved as "Public" | "Linked" | "Private") || "Linked";
+  });
+  const [autoApproveHandshakes, setAutoApproveHandshakes] = useState<boolean>(() => {
+    const saved = localStorage.getItem("hbd_settings_auto_approve");
+    return saved ? saved === "true" : true;
+  });
+  const [showAgeInProfile, setShowAgeInProfile] = useState<boolean>(() => {
+    const saved = localStorage.getItem("hbd_settings_show_age");
+    return saved ? saved === "true" : true;
+  });
+  const [soundEffectsEnabled, setSoundEffectsEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem("hbd_settings_sounds_enabled");
+    return saved ? saved === "true" : true;
+  });
+  const [globalCurrency, setGlobalCurrency] = useState<string>(() => {
+    const saved = localStorage.getItem("hbd_settings_currency");
+    return saved || "GHS";
+  });
+  const [confettiOnBirthdays, setConfettiOnBirthdays] = useState<boolean>(() => {
+    const saved = localStorage.getItem("hbd_settings_confetti");
+    return saved ? saved === "true" : true;
+  });
+
+  // Sent Gifts log state
+  const [sentGifts, setSentGifts] = useState<SentGift[]>(() => {
+    const saved = localStorage.getItem("hbd_sent_gifts_log");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
+
+  // --- IN-APP GIFT STORE MANAGEMENT STATES ---
+  const [giftStoreTab, setGiftStoreTab] = useState<"gallery" | "ledger">("gallery");
+  const [customGiftStoreItem, setCustomGiftStoreItem] = useState<{ id: string; name: string; type: "rose" | "bouquet" | "money"; usdPrice: number } | null>(null);
+  const [giftRecipientId, setGiftRecipientId] = useState<string>("");
+  const [giftRecipientMessage, setGiftRecipientMessage] = useState<string>("");
+  const [giftPaymentMethod, setGiftPaymentMethod] = useState<"momo" | "card" | "points">("momo");
+  const [isGiftProcessing, setIsGiftProcessing] = useState<boolean>(false);
+  const [giftProcessingStep, setGiftProcessingStep] = useState<string>("");
+
+  // Helper to format currency values based on global settings
+  const getFormattedPrice = (usdAmount: number) => {
+    switch (globalCurrency) {
+      case "GHS":
+        return `₵${usdAmount * 12}`;
+      case "EUR":
+        return `€${(usdAmount * 0.92).toFixed(2)}`;
+      case "GBP":
+        return `£${(usdAmount * 0.78).toFixed(2)}`;
+      case "CAD":
+        return `C$${(usdAmount * 1.37).toFixed(2)}`;
+      default:
+        return `$${usdAmount}`;
+    }
+  };
+
+  // Automatically sync settings
+  useEffect(() => {
+    localStorage.setItem("hbd_settings_notify_whatsapp", String(notifyWhatsApp));
+    localStorage.setItem("hbd_settings_notify_snapchat", String(notifySnapchat));
+    localStorage.setItem("hbd_settings_advance_days", String(notifyAdvanceDays));
+    localStorage.setItem("hbd_settings_visibility", globalVisibility);
+    localStorage.setItem("hbd_settings_auto_approve", String(autoApproveHandshakes));
+    localStorage.setItem("hbd_settings_show_age", String(showAgeInProfile));
+    localStorage.setItem("hbd_settings_sounds_enabled", String(soundEffectsEnabled));
+    localStorage.setItem("hbd_settings_currency", globalCurrency);
+    localStorage.setItem("hbd_settings_confetti", String(confettiOnBirthdays));
+  }, [
+    notifyWhatsApp,
+    notifySnapchat,
+    notifyAdvanceDays,
+    globalVisibility,
+    autoApproveHandshakes,
+    showAgeInProfile,
+    soundEffectsEnabled,
+    globalCurrency,
+    confettiOnBirthdays
+  ]);
+
+  // Sync sent gifts
+  useEffect(() => {
+    localStorage.setItem("hbd_sent_gifts_log", JSON.stringify(sentGifts));
+  }, [sentGifts]);
 
   // Local state for the search bar inside the integrated Sign In Page
   const [signinSearchQuery, setSigninSearchQuery] = useState<string>("");
@@ -193,6 +305,36 @@ export default function App() {
     }
     return "Free";
   });
+
+  // Automatically sync updated accountType tier status to localStorage coordinates
+  useEffect(() => {
+    const saved = localStorage.getItem("birthday_authenticated_user");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.accountType !== accountType) {
+          parsed.accountType = accountType;
+          localStorage.setItem("birthday_authenticated_user", JSON.stringify(parsed));
+        }
+      } catch (e) {
+        // Safe catch
+      }
+    } else {
+      const defaultSession = {
+        name: "Alex Patel",
+        username: "alex_patel",
+        email: "alex@example.com",
+        phone: "+233241234567",
+        whatsapp: "+233241234567",
+        birthday: "1997-06-25",
+        avatar: "bg-teal-500",
+        interests: ["Photography", "Specialty Coffee", "Cyberpunk Novels", "Mechanic Keyboards"],
+        accountType: accountType,
+        snapchatUsername: "alex_snap"
+      };
+      localStorage.setItem("birthday_authenticated_user", JSON.stringify(defaultSession));
+    }
+  }, [accountType]);
 
   const [snapchatUsername, setSnapchatUsername] = useState<string>(() => {
     const saved = localStorage.getItem("birthday_authenticated_user");
@@ -317,6 +459,8 @@ export default function App() {
   const [newFriendRelationship, setNewFriendRelationship] = useState<string>("Best Friend");
   const [newFriendAge, setNewFriendAge] = useState<string>("25");
   const [newFriendInterestsText, setNewFriendInterestsText] = useState<string>("");
+  const [isQrScannerActive, setIsQrScannerActive] = useState<boolean>(false);
+  const [newFriendConnectedBack, setNewFriendConnectedBack] = useState<boolean>(false);
 
   // Global search and relationship type filtering states (Registry panel)
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -334,7 +478,7 @@ export default function App() {
   };
 
   // --- CONNECT & IMPORT WORKSPACE STATES ---
-  const [registrySubTab, setRegistrySubTab] = useState<"list" | "connect">("list");
+  const [registrySubTab, setRegistrySubTab] = useState<"list" | "wishlist" | "widgets" | "trophies" | "connect">("list");
   const [connectMethod, setConnectMethod] = useState<"contacts" | "username">("contacts");
   const [usernameSearch, setUsernameSearch] = useState<string>("");
   const [showRelationModal, setShowRelationModal] = useState<boolean>(false);
@@ -453,6 +597,20 @@ export default function App() {
       setIsEditingFriend(false);
     }
   }, [selectedFriendId]);
+
+  // Compatibility Router Redirects for Profile subsections integration
+  useEffect(() => {
+    if (activeSection === "my-wishlist") {
+      setActiveSection("registry");
+      setRegistrySubTab("wishlist");
+    } else if (activeSection === "widgets") {
+      setActiveSection("registry");
+      setRegistrySubTab("widgets");
+    } else if (activeSection === "achievements") {
+      setActiveSection("registry");
+      setRegistrySubTab("trophies");
+    }
+  }, [activeSection]);
 
   // Handle Personalized Gemini Suggestions from backend
   const handleGetGiftSuggestions = async () => {
@@ -849,7 +1007,8 @@ export default function App() {
       phone: newFriendPhone.trim() || "+233241234567",
       whatsapp: newFriendWhatsApp.trim() || "+233241234567",
       email: newFriendEmail.trim() || "friend@example.com",
-      snapchat: newFriendSnapchat.trim() || "friend_snap"
+      snapchat: newFriendSnapchat.trim() || "friend_snap",
+      connectedBack: newFriendConnectedBack
     };
 
     setFriends([...friends, newFriend]);
@@ -864,6 +1023,8 @@ export default function App() {
     setNewFriendWhatsApp("");
     setNewFriendEmail("");
     setNewFriendSnapchat("");
+    setNewFriendConnectedBack(false);
+    setIsQrScannerActive(false);
     setShowAddProfile(false);
     setSelectedFriendId(nextId);
     
@@ -980,36 +1141,284 @@ export default function App() {
   }, 0);
   const unlockLevel = (friends.find(f => f.id === 'alex')?.achievements.length || 0) * 2 + 1;
 
-if (!userSession) {
-  const hasAccount = !!localStorage.getItem("birthday_authenticated_user");
+  if (!userSession) {
+    if (isLoggingIn) {
+      return (
+        <LoginPage 
+          onLogin={(session) => {
+            setUserSession(session);
+            setActiveSection("dashboard");
+          }}
+          onGoToSignUp={() => setIsLoggingIn(false)}
+          triggerToast={triggerToast}
+        />
+      );
+    }
 
-  // If user already registered before → show Login page
-  if (hasAccount && activeSection !== "signin") {
     return (
-      <LoginPage
-        onLogin={(session) => {
-          setUserSession(session);
-          setActiveSection("dashboard");
-          appendLog(`🔐 Logged in: ${session.name}`);
-        }}
-        onGoToSignUp={() => setActiveSection("signin")}
-        triggerToast={triggerToast}
-      />
+      <div className="w-full min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden text-slate-100" id="auth-gate-root">
+        {/* Decorative ambient glowing nodes */}
+        <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none animate-pulse" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] bg-teal-500/10 rounded-full blur-[120px] pointer-events-none" />
+
+        {/* Global Toast within sign up view */}
+        <AnimatePresence>
+          {showToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -45, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              className="fixed top-6 right-6 left-6 md:left-auto md:w-96 bg-slate-900 border border-slate-800 text-white rounded-2xl p-4 shadow-2xl z-50 flex items-start gap-3 text-left"
+            >
+              <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl">
+                <Sparkles className="w-5 h-5 animate-spin" />
+              </div>
+              <div className="flex-1">
+                <h5 className="font-bold text-xs text-indigo-400 uppercase tracking-widest">{toastTitle}</h5>
+                <p className="text-xs text-zinc-300 mt-1 leading-relaxed">{toastMessage}</p>
+              </div>
+              <button onClick={() => setShowToast(false)} className="text-zinc-500 hover:text-white transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="max-w-md w-full z-10 space-y-6">
+          {/* Header Branding */}
+          <motion.div
+            initial={{ opacity: 0, y: -15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center space-y-2"
+          >
+            <span className="inline-flex w-12 h-12 bg-indigo-600 text-white rounded-2xl items-center justify-center text-2xl font-black shadow-xl shadow-indigo-600/35 mb-1 cursor-pointer">
+              B
+            </span>
+            <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+              BloomBirth
+            </h1>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+              Never miss a friend’s birthday. Track birthdays, share wishlists, and get AI gift ideas.
+            </p>
+          </motion.div>
+
+          {/* Centered SignUp Form */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-5 md:p-6 shadow-2xl space-y-4"
+          >
+            <div>
+              <h3 className="font-extrabold text-sm text-slate-100 flex items-center gap-2">
+                <UserPlus className="w-4 h-4 text-indigo-400" />
+                <span>Create Your Account</span>
+              </h3>
+              <p className="text-[11px] text-zinc-400 mt-0.5 text-left">
+                Establish custom parameters to customize your birthday cockpit database.
+              </p>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!signInName.trim() || !signInUsername.trim() || !signInEmail.trim() || !signInPhone.trim() || !signInWhatsApp.trim() || !signInPassword.trim()) {
+                  triggerToast("Missing Fields ⚠️", "Provide name, username, birthday, phone, whatsapp, email, and password.");
+                  return;
+                }
+                const sessionObj = {
+                  name: signInName.trim(),
+                  username: signInUsername.trim().replace(/^@/, ""),
+                  email: signInEmail.trim(),
+                  phone: signInPhone.trim(),
+                  whatsapp: signInWhatsApp.trim(),
+                  birthday: signInBirthday || "1997-06-25",
+                  avatar: signInAvatar || "bg-indigo-600",
+                  interests: signInInterests,
+                  password: signInPassword.trim()
+                };
+                localStorage.setItem("birthday_authenticated_user", JSON.stringify(sessionObj));
+                setUserSession(sessionObj);
+                setActiveSection("dashboard");
+                triggerToast("Account Created! 🎉", `Successfully initiated workspace for ${sessionObj.name}!`);
+                appendLog(`🔐 Authenticated: Active user session established for @${sessionObj.username}.`);
+              }}
+              className="space-y-3.5 text-left"
+            >
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Full Legal Name</label>
+                <input
+                  type="text"
+                  required
+                  value={signInName}
+                  onChange={(e) => setSignInName(e.target.value)}
+                  placeholder="e.g. Alex Patel"
+                  className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 font-sans">Username</label>
+                  <input
+                    type="text"
+                    required
+                    value={signInUsername}
+                    onChange={(e) => setSignInUsername(e.target.value)}
+                    placeholder="e.g. alex_snap"
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Your Birthday</label>
+                  <input
+                    type="date"
+                    required
+                    value={signInBirthday}
+                    onChange={(e) => setSignInBirthday(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Password</label>
+                <input
+                  type="password"
+                  required
+                  value={signInPassword}
+                  onChange={(e) => setSignInPassword(e.target.value)}
+                  placeholder="Create a strong password"
+                  className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 font-sans">Phone Number</label>
+                  <input
+                    type="text"
+                    required
+                    value={signInPhone}
+                    onChange={(e) => setSignInPhone(e.target.value)}
+                    placeholder="e.g. +233241234567"
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 font-sans">WhatsApp Number</label>
+                  <input
+                    type="text"
+                    required
+                    value={signInWhatsApp}
+                    onChange={(e) => setSignInWhatsApp(e.target.value)}
+                    placeholder="e.g. +233241234567"
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 font-sans">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    value={signInEmail}
+                    onChange={(e) => setSignInEmail(e.target.value)}
+                    placeholder="e.g. alex@example.com"
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-indigo-500 transition-colors font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Avatar Palette Selection */}
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Favorite Avatar Accent</label>
+                <div className="flex gap-2">
+                  {[
+                    { bg: "bg-teal-500", name: "Teal" },
+                    { bg: "bg-indigo-500", name: "Indigo" },
+                    { bg: "bg-amber-500", name: "Amber" },
+                    { bg: "bg-rose-500", name: "Rose" },
+                    { bg: "bg-emerald-500", name: "Emerald" },
+                    { bg: "bg-pink-500", name: "Plum" }
+                  ].map(pal => (
+                    <button
+                      key={pal.bg}
+                      type="button"
+                      onClick={() => setSignInAvatar(pal.bg)}
+                      className={`w-7 h-7 rounded-lg transition-transform hover:scale-110 flex items-center justify-center cursor-pointer relative ${pal.bg} ${
+                        signInAvatar === pal.bg ? "ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-105" : "opacity-75"
+                      }`}
+                      title={pal.name}
+                    >
+                      {signInAvatar === pal.bg && <Check className="w-3.5 h-3.5 text-white stroke-[3.5]" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dynamic Interests Choice Box */}
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Select Main Interest Niches</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    "Photography", "Specialty Coffee", "Cyberpunk Novels", "Mechanic Keyboards",
+                    "Yoga & Zen", "Hiking & Trails", "Baking Cakes", "Guitar Instrumental", "Modern Design"
+                  ].map(tag => {
+                    const isChosen = signInInterests.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => {
+                          if (isChosen) {
+                            setSignInInterests(prev => prev.filter(t => t !== tag));
+                          } else {
+                            setSignInInterests(prev => [...prev, tag]);
+                          }
+                        }}
+                        className={`px-2 py-1.5 rounded-lg text-[9px] font-bold font-sans tracking-tight transition-colors cursor-pointer border ${
+                          isChosen 
+                            ? "bg-indigo-650/30 text-indigo-300 border-indigo-500" 
+                            : "bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200"
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full text-center bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white py-3 rounded-2xl font-black text-xs transition-all shadow-xl shadow-indigo-600/25 tracking-wide cursor-pointer flex items-center justify-center gap-1"
+              >
+                Create Account
+              </button>
+            </form>
+
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-slate-800" />
+              <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">or</span>
+              <div className="flex-1 h-px bg-slate-800" />
+            </div>
+
+            <div className="text-center">
+              <p className="text-[11px] text-slate-500">
+                Already have an account?{" "}
+                <button
+                  type="button"
+                  onClick={() => setIsLoggingIn(true)}
+                  className="text-indigo-400 font-bold hover:text-indigo-300 transition-colors cursor-pointer bg-transparent border-none outline-none"
+                >
+                  Sign In
+                </button>
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      </div>
     );
   }
-
-  // First-time user → show the existing registration form below
-  return (
-    <div className="w-full min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden text-slate-100" id="auth-gate-root">
-
-      {/* === PASTE YOUR EXISTING REGISTRATION FORM JSX HERE === */}
-      {/* This is everything from line 985 to 1325 in your original file */}
-      {/* (the toast, the branding header, the form card, the presets panel) */}
-
-    </div>
-  );
-}
-
 
   return (
     <div className="w-full min-h-screen bg-[#F1F5F9] flex flex-col md:flex-row font-sans text-slate-800" id="bloom-app-root">
@@ -1137,44 +1546,46 @@ if (!userSession) {
             </button>
 
             <button
-              onClick={() => setActiveSection("my-wishlist")}
+              onClick={() => setActiveSection("gift-store")}
               className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${
-                activeSection === "my-wishlist"
+                activeSection === "gift-store"
                   ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/30 font-extrabold"
                   : "text-slate-400 hover:text-white hover:bg-slate-800/60"
               }`}
             >
-              <Gift className="w-4 h-4" />
-              <span>My Wishlist Hub</span>
-              <span className="ml-auto bg-teal-500/10 text-teal-300 font-mono text-[10px] px-2 py-0.5 rounded font-bold">Self</span>
+              <Gift className="w-4 h-4 text-rose-400 animate-pulse" />
+              <span>In-App Gift Store</span>
+              <span className="ml-auto bg-rose-600 text-[9px] px-1.5 py-0.5 rounded text-white font-mono font-bold">GIFTS</span>
             </button>
 
             <button
-              onClick={() => setActiveSection("widgets")}
+              onClick={() => {
+                setActiveSection("profile");
+              }}
               className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${
-                activeSection === "widgets"
+                activeSection === "profile"
                   ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/30 font-extrabold"
                   : "text-slate-400 hover:text-white hover:bg-slate-800/60"
               }`}
             >
-              <Smartphone className="w-4 h-4" />
-              <span>Widget Simulator</span>
-              <span className="ml-auto text-[10px] text-cyan-400 bg-cyan-900/30 px-1.5 py-0.5 rounded font-bold">iOS/AND</span>
+              <User className="w-4 h-4 text-sky-400" />
+              <span>My Profile</span>
+              <span className="ml-auto bg-sky-500/10 text-sky-300 font-mono text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Me</span>
             </button>
 
             <button
-              onClick={() => setActiveSection("achievements")}
+              onClick={() => {
+                setActiveSection("settings");
+              }}
               className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${
-                activeSection === "achievements"
+                activeSection === "settings"
                   ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/30 font-extrabold"
                   : "text-slate-400 hover:text-white hover:bg-slate-800/60"
               }`}
             >
-              <Award className="w-4 h-4" />
-              <span>Milestones &amp; Logs</span>
-              <span className="ml-auto bg-amber-500/15 text-amber-400 text-[10px] px-2 py-0.5 rounded font-mono font-extrabold">
-                Lvl {unlockLevel}
-              </span>
+              <Settings className="w-4 h-4 text-indigo-400" />
+              <span>Workspace Settings</span>
+              <span className="ml-auto bg-indigo-500/10 text-indigo-300 font-mono text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Setup</span>
             </button>
 
             <button
@@ -1217,48 +1628,25 @@ if (!userSession) {
                 {activeSection === "my-wishlist" && "Alex Patel's Desire Hub"}
                 {activeSection === "widgets" && "iOS & Android Widget Studio"}
                 {activeSection === "achievements" && "Milestones Awards & Activity Ledger"}
-                {activeSection === "signin" && "Identity Settings & Companion Search"}
+                {activeSection === "profile" && "My Account & Identity"}
+                {activeSection === "settings" && "Workspace Settings & Preferences"}
                 {activeSection === "upgrade" && "Premium Plan Tiers"}
               </h2>
             </div>
 
-            {/* Mobile/Compact Profile Avatar Button in top corner */}
-            <button
-              onClick={() => setActiveSection("signin")}
-              className="md:hidden flex items-center gap-1.5 bg-slate-150 hover:bg-slate-200 p-1.5 pr-2.5 rounded-full border border-slate-200/80 transition-all cursor-pointer shadow-xs shrink-0"
-              title="Access profile & session"
-            >
-              {userSession ? (
-                <>
-                  <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] text-white shrink-0 ${userSession.avatar}`}>
-                    {userSession.name.split(" ").map(n => n[0]).join("")}
-                  </span>
-                  <span className="text-[10px] font-black text-slate-800 truncate max-w-[65px]">{userSession.name.split(" ")[0]}</span>
-                </>
-              ) : (
-                <>
-                  <div className="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center">
-                    <User className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-[10px] font-bold text-indigo-600">Sign In</span>
-                </>
-              )}
-            </button>
-
-            {/* Mobile/Compact Premium/Upgrade Pill in top corner */}
+            {/* Mobile/Compact Settings Button in top corner */}
             <button
               onClick={() => {
-                setActiveSection("upgrade");
-                window.scrollTo({ top: 0, behavior: "smooth" });
+                setActiveSection("settings");
               }}
-              className={`md:hidden flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/25 text-amber-600 border border-amber-500/35 p-1.5 px-2.5 rounded-full transition-all cursor-pointer shadow-xs shrink-0 ${
-                activeSection === "upgrade" ? "bg-amber-500 text-slate-950 font-black border-amber-400" : ""
-              }`}
-              title="Upgrade to Premium"
+              className="md:hidden flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 p-1.5 pr-2 rounded-xl border border-slate-200 transition-all cursor-pointer shadow-xs shrink-0"
+              title="Access Workspace Settings"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span className="text-[9.5px] font-black uppercase tracking-wider">Premium</span>
+              <Settings className="w-3.5 h-3.5 text-indigo-650 animate-spin" style={{ animationDuration: "12s" }} />
+              <span className="text-[10.5px] font-black text-slate-800">Settings</span>
             </button>
+
+
           </div>
 
           {/* Quick Header actions integration */}
@@ -1283,33 +1671,21 @@ if (!userSession) {
               )}
             </button>
 
-            {/* Desktop persistent custom profile button */}
+            {/* Desktop persistent settings button */}
             <button
-              onClick={() => setActiveSection("signin")}
-              className="hidden md:flex items-center gap-2.5 bg-slate-50 hover:bg-indigo-50/50 p-1.5 pr-3 rounded-xl border border-slate-200 transition-all cursor-pointer shrink-0"
-              title="Identity & Session Settings"
+               onClick={() => {
+                 setActiveSection("settings");
+               }}
+               className="hidden md:flex items-center gap-2.5 bg-slate-50 hover:bg-indigo-50/50 p-1.5 pr-3 rounded-xl border border-slate-200 transition-all cursor-pointer shrink-0"
+               title="Workspace Settings & Preferences"
             >
-              {userSession ? (
-                <>
-                  <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-[10px] text-white shrink-0 ${userSession.avatar}`}>
-                    {userSession.name.split(" ").map(n => n[0]).join("")}
-                  </span>
-                  <div className="text-left font-sans">
-                    <span className="text-[10.5px] font-extrabold text-slate-800 block leading-none">{userSession.name}</span>
-                    <span className="text-[8.5px] text-indigo-600 font-bold block mt-0.5 uppercase tracking-wider animate-pulse">Active Workspace</span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="w-7 h-7 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <div className="text-left leading-none font-sans">
-                    <span className="text-[10.5px] font-black text-indigo-600 block">Sign In</span>
-                    <span className="text-[8.5px] text-slate-400 block mt-0.5">Guest Space</span>
-                  </div>
-                </>
-              )}
+               <div className="w-7 h-7 bg-indigo-100 text-indigo-700 rounded-lg flex items-center justify-center shrink-0">
+                 <Settings className="w-4 h-4 text-indigo-600 animate-spin-slow" style={{ animationDuration: "12s" }} />
+               </div>
+               <div className="text-left font-sans">
+                 <span className="text-[11px] font-black text-slate-850 block leading-tight">Settings</span>
+                 <span className="text-[8.5px] text-indigo-600 font-bold block mt-0.5 uppercase tracking-wider">Preferences</span>
+               </div>
             </button>
 
             <button
@@ -1349,6 +1725,40 @@ if (!userSession) {
                     <h3 className="text-lg font-black text-slate-900">New Birthday Circle Bud</h3>
                     <p className="text-xs text-slate-500">Add an interactive companion card to monitor registries</p>
                   </div>
+                </div>
+
+                {/* Primary Camera/Simulation QR Handshake Trigger */}
+                <div className="mb-4">
+                  {!isQrScannerActive ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsQrScannerActive(true)}
+                      className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-750 hover:to-indigo-700 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer border border-indigo-500/10 active:scale-95"
+                    >
+                      <Camera className="w-4 h-4 text-indigo-200" />
+                      <span>Scan Buddy profile QR card</span>
+                      <span className="bg-indigo-500 text-[8.5px] uppercase font-mono tracking-widest px-1.5 py-0.5 rounded-full text-indigo-100 shrink-0 font-extrabold">Instant</span>
+                    </button>
+                  ) : (
+                    <QrScanner
+                      onScan={(scannedProfile) => {
+                        setNewFriendName(scannedProfile.name);
+                        setNewFriendBirthday(scannedProfile.birthday);
+                        setNewFriendAge(scannedProfile.age);
+                        setNewFriendRelationship(scannedProfile.relationship);
+                        setNewFriendPhone(scannedProfile.phone);
+                        setNewFriendWhatsApp(scannedProfile.whatsapp);
+                        setNewFriendEmail(scannedProfile.email);
+                        setNewFriendSnapchat(scannedProfile.snapchat);
+                        setNewFriendInterestsText(scannedProfile.interests);
+                        setNewFriendConnectedBack(true);
+                        setIsQrScannerActive(false);
+                        triggerToast("QR Profile Synced! ✨", `Loaded details of ${scannedProfile.name}. Preview parameters below.`);
+                        appendLog(`🍀 Scanned profile QR card: Synced local state parameters of ${scannedProfile.name}.`);
+                      }}
+                      onClose={() => setIsQrScannerActive(false)}
+                    />
+                  )}
                 </div>
 
                 <form onSubmit={handleCreateFriend} className="space-y-4">
@@ -1835,6 +2245,20 @@ if (!userSession) {
           {/* ==================== SCREEN 1: EXECUTIVE COMMAND CENTER ==================== */}
           {activeSection === "dashboard" && (
             <div className="space-y-6" id="view-dashboard-hull">
+              {/* Upcoming Birthdays Dashboard Grid */}
+              <BirthdayDashboard 
+                friends={friends}
+                userName={userSession ? userSession.name : "Alex Patel"}
+                onViewFriend={(friendId) => {
+                  setSelectedFriendId(friendId);
+                  setActiveSection("registry");
+                }}
+                onOpenGiftAI={(friendId) => {
+                  setSelectedFriendId(friendId);
+                  setActiveSection("ai-lab");
+                }}
+              />
+
               {/* Top Greeting Message */}
               <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-6 rounded-3xl text-left text-white shadow-xl relative overflow-hidden">
                 <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-indigo-500/10 to-transparent pointer-events-none" />
@@ -1859,24 +2283,6 @@ if (!userSession) {
                   </button>
                 </div>
               </div>
-              {/* ==================== BIRTHDAY FEED ==================== */}
-<BirthdayDashboard
-  friends={friends}
-  userName={userSession?.name || "Friend"}
-  onViewFriend={(id) => {
-    setSelectedFriendId(id);
-    setActiveSection("registry");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }}
-  onOpenGiftAI={(id) => {
-    setSelectedFriendId(id);
-    setActiveSection("ai-lab");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }}
-/>
-
-{/* ==================== UNIVERSAL SEARCH & DISCOVERY CENTER ==================== */}
-
 
               {/* ==================== UNIVERSAL SEARCH & DISCOVERY CENTER ==================== */}
               <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs text-left space-y-4" id="dashboard-discovery-deck">
@@ -2144,6 +2550,20 @@ if (!userSession) {
                                     <span>•</span>
                                     <span>Turns {friend.age}</span>
                                   </div>
+                                  {/* Real-time gift status badge */}
+                                  {(() => {
+                                    const friendGiftsCount = sentGifts.filter(g => g.friendId === friend.id).length;
+                                    if (friendGiftsCount > 0) {
+                                      return (
+                                        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                          <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-600 font-black text-[9px] px-2 py-0.5 rounded-lg border border-rose-150 font-mono uppercase tracking-wide">
+                                            🎁 Boutique Locker: {friendGiftsCount} {friendGiftsCount === 1 ? 'gift' : 'gifts'} dispatched &amp; active
+                                          </span>
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
                                 </div>
                               </div>
 
@@ -2293,6 +2713,23 @@ if (!userSession) {
                         <p className="text-slate-500 italic">No desires listed yet. Generate AI suggestions below.</p>
                       )}
                     </div>
+
+                    {/* Spotlight Gift Status */}
+                    {(() => {
+                      const nextTargetGifts = sentGifts.filter(g => g.friendId === nextTarget.id).length;
+                      if (nextTargetGifts > 0) {
+                        return (
+                          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-2.5 px-3.5 text-[10.5px] font-medium leading-relaxed mt-2.5 flex items-center gap-2">
+                            <span className="text-lg">🎁</span>
+                            <div className="min-w-0">
+                              <span className="font-extrabold text-rose-900 block leading-tight">Boutique Gift Dispatched!</span>
+                              <span className="text-rose-600 font-bold block text-[10px] truncate">{nextTargetGifts} gift {nextTargetGifts === 1 ? 'locker item' : 'locker items'} sent.</span>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
 
                   <div className="pt-4 flex gap-2">
@@ -2712,40 +3149,83 @@ if (!userSession) {
 
           {/* ==================== SCREEN 2: BUDDIES REGISTRY CRM ==================== */}
           {activeSection === "registry" && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-left" id="view-registry-hull">
-              {/* Left Column (SPAN 5) - Switchable between Circles and Connect/Import */}
-              <div className="lg:col-span-5 space-y-4">
-                
-                {/* Visual Pill Segmented Sub-tab switcher */}
-                <div className="flex bg-slate-200/80 p-1 rounded-2xl w-full border border-slate-300/40 shadow-xs" id="registry-segmented-tabs">
-                  <button
-                    onClick={() => setRegistrySubTab("list")}
-                    className={`flex-1 py-2 text-xs font-black rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      registrySubTab === "list"
-                        ? "bg-white text-slate-900 shadow-md shadow-slate-350/50"
-                        : "text-slate-550 hover:text-slate-900"
-                    }`}
-                  >
-                    <Users className="w-3.5 h-3.5" />
-                    <span>Roster Circles</span>
-                  </button>
-                  <button
-                    onClick={() => setRegistrySubTab("connect")}
-                    className={`flex-1 py-2 text-xs font-black rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 relative ${
-                      registrySubTab === "connect"
-                        ? "bg-white text-indigo-950 shadow-md shadow-slate-350/50"
-                        : "text-slate-550 hover:text-indigo-900"
-                    }`}
-                  >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    <span>Connect &amp; Import</span>
-                    {/* Pulsing indicator to grab attention about external contacts sync */}
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-ping absolute right-3 top-3" />
-                  </button>
-                </div>
+            <div className="space-y-6 text-left" id="view-registry-hull">
 
-                {/* --- TAB A: MY CURRENT ROSTER CIRCLES (ORIGINAL LIST VIEW) --- */}
-                {registrySubTab === "list" && (
+              {/* Universal Buddies Navigation Bar */}
+              <div className="flex flex-wrap bg-slate-200/80 p-1.5 rounded-2xl w-full border border-slate-300/40 shadow-xs gap-1" id="registry-segmented-tabs">
+                <button
+                  type="button"
+                  onClick={() => setRegistrySubTab("list")}
+                  className={`flex-1 min-w-[110px] py-2 text-xs font-black rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    registrySubTab === "list"
+                      ? "bg-white text-slate-900 shadow-md shadow-slate-350/50"
+                      : "text-slate-550 hover:text-slate-900"
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Buddies List</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRegistrySubTab("wishlist")}
+                  className={`flex-1 min-w-[110px] py-2 text-xs font-black rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    registrySubTab === "wishlist"
+                      ? "bg-white text-slate-900 shadow-md shadow-slate-350/50"
+                      : "text-slate-550 hover:text-slate-900"
+                  }`}
+                >
+                  <Gift className="w-3.5 h-3.5 text-rose-500" />
+                  <span>My Wishlist</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRegistrySubTab("widgets")}
+                  className={`flex-1 min-w-[110px] py-2 text-xs font-black rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    registrySubTab === "widgets"
+                      ? "bg-white text-slate-900 shadow-md shadow-slate-350/50"
+                      : "text-slate-550 hover:text-slate-900"
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-cyan-500" />
+                  <span>Widgets Studio</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRegistrySubTab("trophies")}
+                  className={`flex-1 min-w-[110px] py-2 text-xs font-black rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    registrySubTab === "trophies"
+                      ? "bg-white text-slate-900 shadow-md shadow-slate-350/50"
+                      : "text-slate-550 hover:text-slate-550"
+                  }`}
+                >
+                  <Award className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Trophies &amp; Logs</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRegistrySubTab("connect")}
+                  className={`flex-1 min-w-[110px] py-2 text-xs font-black rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 relative ${
+                    registrySubTab === "connect"
+                      ? "bg-white text-indigo-950 shadow-md shadow-slate-350/50"
+                      : "text-slate-550 hover:text-indigo-900"
+                  }`}
+                >
+                  <UserPlus className="w-3.5 h-3.5 text-indigo-650" />
+                  <span>Connect &amp; Import</span>
+                </button>
+              </div>
+
+              {/* Dynamic sections based on selected subtab */}
+              {(registrySubTab === "list" || registrySubTab === "connect") ? (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+                  {/* Left Column (SPAN 5) */}
+                  <div className="lg:col-span-5 space-y-4">
+                    {/* --- TAB A: MY CURRENT ROSTER CIRCLES (ORIGINAL LIST VIEW) --- */}
+                    {registrySubTab === "list" && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -2783,6 +3263,17 @@ if (!userSession) {
                           </button>
                         ))}
                       </div>
+                    </div>
+
+                    {/* Privacy Rule notice block */}
+                    <div className="bg-gradient-to-br from-indigo-50/20 to-slate-50 border border-slate-200 rounded-[1.5rem] p-4 text-xs space-y-1.5 text-left text-slate-600 shadow-3xs">
+                      <div className="flex items-center gap-1.5 font-black text-slate-800">
+                        <span>🛡️</span>
+                        <span>Bidirectional Privacy Rule</span>
+                      </div>
+                      <p className="text-[11px] leading-relaxed text-slate-500">
+                        Wishlists and tags are only readable once a contact mirrors your username connection. Locked entries display a 🔒 badge until mutually approved.
+                      </p>
                     </div>
 
                     {/* Buddies Directory Card List */}
@@ -2824,12 +3315,51 @@ if (!userSession) {
                                     {friend.name.split(" ").map(n => n[0]).join("")}
                                   </span>
                                   <div className="min-w-0">
-                                    <span className={`text-xs font-bold block truncate ${isSel ? "text-white" : "text-slate-800"}`}>
-                                      {friend.name}
-                                    </span>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className={`text-xs font-bold block truncate ${isSel ? "text-white" : "text-slate-800"}`}>
+                                        {friend.name}
+                                      </span>
+                                      {isSelf ? (
+                                        <span className={`text-[9.5px] font-extrabold px-1 py-0.2 rounded font-mono shrink-0 uppercase tracking-wide ${
+                                          isSel ? "bg-indigo-500/40 text-indigo-200" : "bg-slate-200/60 text-slate-600"
+                                        }`}>
+                                          Host
+                                        </span>
+                                      ) : friend.connectedBack ? (
+                                        <span className={`text-[9.5px] font-extrabold px-1.5 py-0.2 rounded font-mono shrink-0 flex items-center gap-0.5 ${
+                                          isSel 
+                                            ? "bg-indigo-500/30 text-emerald-200" 
+                                            : "bg-emerald-50 text-emerald-700"
+                                        }`}>
+                                          🤝 Linked
+                                        </span>
+                                      ) : (
+                                        <span className={`text-[9.5px] font-extrabold px-1.5 py-0.2 rounded font-mono shrink-0 flex items-center gap-0.5 ${
+                                          isSel 
+                                            ? "bg-indigo-500/30 text-amber-200" 
+                                            : "bg-amber-50 text-amber-700"
+                                        }`}>
+                                          🔒 Locked
+                                        </span>
+                                      )}
+                                    </div>
                                     <span className={`text-[10px] font-semibold block ${isSel ? "text-indigo-200" : "text-slate-500"}`}>
                                       {friend.relationship === "Configure Later" ? "⚠️ Configure Relation" : `${friend.relationship} • Turns ${friend.age}`}
                                     </span>
+                                    {/* Gift badge if any gift is sent */}
+                                    {(() => {
+                                      const giftCount = sentGifts.filter(g => g.friendId === friend.id).length;
+                                      if (giftCount > 0) {
+                                        return (
+                                          <span className={`inline-flex items-center gap-1 mt-1 text-[9px] font-black px-1.5 py-0.5 rounded font-mono uppercase tracking-wide shrink-0 ${
+                                            isSel ? "bg-rose-500/40 text-rose-100 border border-rose-400/30" : "bg-rose-50 text-rose-600 border border-rose-100"
+                                          }`}>
+                                            🎁 {giftCount} {giftCount === 1 ? 'gift' : 'gifts'}
+                                          </span>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
                                   </div>
                                 </div>
 
@@ -3299,260 +3829,609 @@ if (!userSession) {
                     </form>
                   )}
 
-                  {/* Circle Interests / Tag Shelf */}
-                  <div className="text-left">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                        <Smile className="w-3.5 h-3.5 text-indigo-400" /> Circle Interests &amp; Tags
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1.5 mb-3">
-                      {selectedFriend.interests.length === 0 ? (
-                        <p className="text-xs text-slate-405 italic">No tagging descriptors bounded to registration cards.</p>
-                      ) : (
-                        selectedFriend.interests.map((tag, idx) => (
-                          <div 
-                            key={idx}
-                            className="bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg text-slate-700 font-semibold text-[11px] flex items-center gap-1 transition-colors border border-slate-150"
-                          >
-                            <span>#{tag}</span>
-                            <button 
-                              onClick={() => handleRemoveInterestTag(tag)}
-                              className="text-slate-450 hover:text-rose-500 transition-colors cursor-pointer"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    {/* Tag form adder */}
-                    <form onSubmit={handleAddInterestTag} className="flex gap-2 max-w-sm">
-                      <input 
-                        type="text" 
-                        placeholder="Attach hobby descriptors..." 
-                        value={customInterest}
-                        onChange={(e) => setCustomInterest(e.target.value)}
-                        className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs flex-grow focus:outline-none focus:ring-1 focus:ring-indigo-150 focus:bg-white"
-                      />
-                      <button 
-                        type="submit" 
-                        className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl block cursor-pointer"
-                      >
-                        Add Tag
-                      </button>
-                    </form>
-                  </div>
-
-                  {/* Registered Wishlist Items Panel */}
-                  <div className="text-left border-t border-slate-200 pt-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <h4 className="font-extrabold text-[15px] text-slate-850 flex items-center gap-1.5">
-                        <Heart className="w-4 h-4 text-rose-500 fill-rose-500" /> Wishlist Desires Folder
-                      </h4>
-                      <span className="text-[10px] bg-slate-100 font-mono px-2 py-0.5 rounded font-extrabold text-slate-505">
-                        {selectedFriend.wishlist.length} Items Listed
-                      </span>
-                    </div>
-
-                    {/* Edit Wish Box inline */}
-                    {editingWishId && (
-                      <form onSubmit={saveEditedWishlistItem} className="bg-amber-50/50 p-4 rounded-2xl border border-amber-200 mb-4 space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest">Editing Selected Desire Entry</span>
-                          <button type="button" onClick={() => setEditingWishId(null)} className="text-slate-505">
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          <input 
-                            type="text" 
-                            required 
-                            value={editingWishTitle} 
-                            onChange={(e) => setEditingWishTitle(e.target.value)} 
-                            placeholder="Desire Name" 
-                            className="bg-white border rounded px-2.5 py-1 text-xs"
-                          />
-                          <input 
-                            type="text" 
-                            value={editingWishPrice} 
-                            onChange={(e) => setEditingWishPrice(e.target.value)} 
-                            placeholder="Estimated Pricing (e.g. $25)" 
-                            className="bg-white border rounded px-2.5 py-1 text-xs"
-                          />
-                        </div>
-                        <input 
-                          type="text" 
-                          value={editingWishUrl} 
-                          onChange={(e) => setEditingWishUrl(e.target.value)} 
-                          placeholder="Optional purchase link" 
-                          className="bg-white border rounded px-2.5 py-1 text-xs w-full"
-                        />
-                        <div className="flex gap-2 justify-end pt-1">
-                          <button type="button" onClick={() => setEditingWishId(null)} className="px-3 py-1 bg-slate-200 text-slate-700 rounded text-[10.5px] cursor-pointer">Cancel</button>
-                          <button type="submit" className="px-3 py-1 bg-indigo-600 text-white rounded text-[10.5px] cursor-pointer">Save Changes</button>
-                        </div>
-                      </form>
-                    )}
-
-                    {/* Wishlist item catalogs */}
-                    <div className="space-y-2.5 max-h-[290px] overflow-y-auto pr-1">
-                      {selectedFriend.wishlist.length === 0 ? (
-                        <div className="py-8 text-center text-zinc-450 bg-slate-50 rounded-2xl border border-slate-100">
-                          <GiftIcon className="w-10 h-10 mx-auto text-zinc-400 stroke-1 mb-2 animate-pulse" />
-                          <p className="text-xs font-semibold">No wishes defined inside companion folder registry.</p>
-                          <button 
-                            onClick={() => setIsAddingWish(true)} 
-                            className="text-[11px] text-indigo-600 hover:underline font-bold mt-2"
-                          >
-                            Add desire item +
-                          </button>
-                        </div>
-                      ) : (
-                        selectedFriend.wishlist.map(wish => (
-                          <div 
-                            key={wish.id}
-                            className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between gap-1.5 ${
-                              wish.isClaimed 
-                                ? "bg-slate-50/70 border-slate-200 opacity-80" 
-                                : "bg-white border-slate-150 hover:border-slate-300"
-                            }`}
-                          >
-                            <div className="flex justify-between items-start gap-3">
-                              <div className="flex-1">
-                                <span className="text-xs font-bold text-slate-800 break-words">{wish.title}</span>
-                                <div className="flex items-center gap-3 mt-1.5">
-                                  <span className="text-xs font-extrabold text-emerald-600 font-mono">{wish.price}</span>
-                                  {wish.url && (
-                                    <a 
-                                      href={wish.url} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer" 
-                                      className="text-[10px] text-indigo-600 hover:underline flex items-center gap-0.5 font-bold"
-                                    >
-                                      Purchase Platform <ExternalLink className="w-2.5 h-2.5" />
-                                    </a>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="flex flex-col gap-1.5 items-end justify-end shrink-0">
-                                {selectedFriend.id !== 'alex' ? (
-                                  <button
-                                    onClick={() => toggleClaimWishlistItem(selectedFriend.id, wish.id)}
-                                    className={`px-3 py-1 rounded-lg text-[10px] font-bold cursor-pointer inline-flex items-center gap-0.5 ${
-                                      wish.isClaimed
-                                        ? "bg-slate-200 text-slate-705 hover:bg-rose-100 hover:text-rose-600"
-                                        : "bg-indigo-600 text-white hover:bg-indigo-750"
-                                    }`}
-                                  >
-                                    {wish.isClaimed ? "Reserved Guide" : "Claim Gift"}
-                                  </button>
-                                ) : (
-                                  <span className="text-[10px] text-zinc-400 font-bold bg-zinc-100 px-1.5 py-0.5 rounded uppercase">Self Registry</span>
-                                )}
-
-                                <div className="flex gap-1.5">
-                                  <button
-                                    onClick={() => startEditingWishlistItem(wish)}
-                                    className="p-1 text-slate-505 hover:text-indigo-600 hover:bg-indigo-50 rounded cursor-pointer"
-                                    title="Edit wishlist card parameters"
-                                  >
-                                    <Edit3 className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => deleteWishlistItem(wish.id)}
-                                    className="p-1 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded cursor-pointer"
-                                    title="Delete wishlist card parameters"
-                                  >
-                                    <Trash className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-
-                            {wish.isClaimed && (
-                              <p className="text-[9.5px] italic font-semibold text-slate-500 bg-slate-100 rounded-lg p-1.5 px-2.5 w-fit">
-                                🎁 Commitment claimed by: {wish.claimedBy}
-                              </p>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    {/* Inline desire adding drawer */}
-                    {!isAddingWish && (
-                      <button
-                        onClick={() => setIsAddingWish(true)}
-                        className="mt-4 w-full py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl text-xs font-bold transition-all border border-dashed border-slate-200 flex items-center justify-center gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Add customized desire option</span>
-                      </button>
-                    )}
-
-                    {isAddingWish && (
-                      <form onSubmit={addWishlistItem} className="mt-4 bg-slate-50 p-4 border border-slate-200 rounded-2xl text-left space-y-3">
-                        <div className="flex justify-between items-center bg-slate-100 p-1.5 rounded-lg">
-                          <h5 className="text-[11px] font-bold text-slate-700 uppercase">Save New Desire Option</h5>
-                          <button type="button" onClick={() => setIsAddingWish(false)} className="text-slate-400 hover:text-slate-650">
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+                  {/* Circle Interests, Tag Shelf & Wishlist Panel Conditionally Gated */}
+                  {selectedFriend.id !== 'alex' && !selectedFriend.connectedBack ? (
+                    <div className="border-t border-slate-200 pt-8" id="mutual-connection-gate">
+                      <div className="bg-gradient-to-br from-slate-50 to-indigo-50/30 border border-indigo-150 rounded-3xl p-6 md:p-8 text-center max-w-lg mx-auto space-y-4 shadow-sm animate-fade-in text-slate-800">
+                        <div className="w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xl mx-auto shadow-md">
+                          🔒
                         </div>
                         
-                        <div className="space-y-2">
-                          <div>
-                            <label className="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Desire Name / Description</label>
-                            <input
-                              type="text"
-                              required
-                              placeholder="e.g. Saffron Bonsai Plant Pot (Standard size)"
-                              value={newItemTitle}
-                              onChange={(e) => setNewItemTitle(e.target.value)}
-                              className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs focus:ring-1 focus:outline-none"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Estimated Price Label</label>
-                              <input
-                                type="text"
-                                placeholder="e.g. $30.00"
-                                value={newItemPrice}
-                                onChange={(e) => setNewItemPrice(e.target.value)}
-                                className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs focus:ring-1 focus:outline-none"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Store / Platform URL</label>
-                              <input
-                                type="text"
-                                placeholder="e.g. https://amazon.com/..."
-                                value={newItemUrl}
-                                onChange={(e) => setNewItemUrl(e.target.value)}
-                                className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs focus:ring-1 focus:outline-none"
-                              />
-                            </div>
-                          </div>
+                        <div className="space-y-1.5">
+                          <h4 className="text-base font-black text-slate-900">Mutual Connection Required</h4>
+                          <p className="text-xs text-slate-500 leading-relaxed">
+                            For privacy and security, you must connect with <span className="font-extrabold text-slate-800">{selectedFriend.name}</span> and they must also connect back before you are permitted to view their circle interests, tags, or claim items on their secret wishlist folders.
+                          </p>
                         </div>
 
-                        <button
-                          type="submit"
-                          className="w-full py-2 bg-indigo-600 hover:bg-indigo-750 text-white text-xs font-bold rounded-xl shadow cursor-pointer transition-colors"
-                        >
-                          Save Desire
-                        </button>
-                      </form>
-                    )}
-                  </div>
+                        <div className="bg-white rounded-2xl p-4 border border-indigo-100 text-left text-xs text-slate-500 space-y-2">
+                          <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span>Reciprocal Confirmation Simulator:</span>
+                          </div>
+                          <p className="text-[10.5px] leading-relaxed">
+                            In HBD production, companions download the PWA and sync mutually. For testing our UI, click below to instantly trigger reciprocal handshake approval!
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFriends(prev => prev.map(f => f.id === selectedFriend.id ? { ...f, connectedBack: true } : f));
+                              triggerToast("Mutual Handshake Synced! 🤝", `Simulated: ${selectedFriend.name} accepted your connection.`);
+                              appendLog(`🤝 Handshake Approved: Reciprocal approval received from ${selectedFriend.name}.`);
+                            }}
+                            className="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs py-2 px-4 rounded-xl transition cursor-pointer shadow flex items-center justify-center gap-1.5"
+                          >
+                            <span>Accept mutual handshake as {selectedFriend.name.split(" ")[0]} 🤝</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Circle Interests / Tag Shelf */}
+                      <div className="text-left">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                            <Smile className="w-3.5 h-3.5 text-indigo-400" /> Circle Interests &amp; Tags
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {selectedFriend.interests.length === 0 ? (
+                            <p className="text-xs text-slate-405 italic">No tagging descriptors bounded to registration cards.</p>
+                          ) : (
+                            selectedFriend.interests.map((tag, idx) => (
+                              <div 
+                                key={idx}
+                                className="bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg text-slate-700 font-semibold text-[11px] flex items-center gap-1 transition-colors border border-slate-150"
+                              >
+                                <span>#{tag}</span>
+                                <button 
+                                  onClick={() => handleRemoveInterestTag(tag)}
+                                  className="text-slate-450 hover:text-rose-500 transition-colors cursor-pointer"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        {/* Tag form adder */}
+                        <form onSubmit={handleAddInterestTag} className="flex gap-2 max-w-sm">
+                          <input 
+                            type="text" 
+                            placeholder="Attach hobby descriptors..." 
+                            value={customInterest}
+                            onChange={(e) => setCustomInterest(e.target.value)}
+                            className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs flex-grow focus:outline-none focus:ring-1 focus:ring-indigo-150 focus:bg-white"
+                          />
+                          <button 
+                            type="submit" 
+                            className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl block cursor-pointer"
+                          >
+                            Add Tag
+                          </button>
+                        </form>
+                      </div>
+
+                      {/* Companion Interactive Gift Locker Section */}
+                      <div className="text-left border-t border-slate-200 pt-6">
+                        <div className="flex justify-between items-center mb-3">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                            <Gift className="w-3.5 h-3.5 text-rose-500 animate-pulse" /> Celebration Gift Locker
+                          </span>
+                          <span className="text-[10px] bg-rose-50 font-mono px-2 py-0.5 rounded font-extrabold text-rose-600">
+                            {sentGifts.filter(g => g.friendId === selectedFriend.id).length} Items Received
+                          </span>
+                        </div>
+
+                        {sentGifts.filter(g => g.friendId === selectedFriend.id).length === 0 ? (
+                          <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-150 text-center text-slate-500 text-xs shadow-3xs">
+                            <p className="font-semibold text-slate-650">No boutique gifts received by {selectedFriend.name.split(" ")[0]} yet.</p>
+                            <p className="text-[10.5px] text-slate-400 mt-1 font-sans">Surprise them with a classic red rose, floral bouquet or cash present sack!</p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setGiftRecipientId(selectedFriend.id);
+                                setGiftStoreTab("gallery");
+                                setActiveSection("gift-store");
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                              }}
+                              className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-750 text-white font-extrabold text-[10.5px] rounded-xl cursor-pointer transition active:scale-95 shadow-sm"
+                            >
+                              <span>Browse Gift Store 🌹</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[220px] overflow-y-auto pr-1">
+                            {sentGifts
+                              .filter(g => g.friendId === selectedFriend.id)
+                              .map(gift => (
+                                <div 
+                                  key={gift.id}
+                                  className="bg-[#FFFDFD] hover:bg-[#FFF9F9] border border-rose-100/85 hover:border-rose-200 p-3 rounded-2xl text-left flex flex-col justify-between gap-2.5 transition relative overflow-hidden"
+                                >
+                                  <div className="flex items-start gap-2">
+                                    <span className="text-2xl mt-0.5 shrink-0">
+                                      {gift.giftType === "rose" && "🌹"}
+                                      {gift.giftType === "bouquet" && "💐"}
+                                      {gift.giftType === "money" && "💰"}
+                                    </span>
+                                    <div className="min-w-0">
+                                      <h5 className="font-extrabold text-xs text-slate-900 truncate">{gift.giftName}</h5>
+                                      <span className="text-[10px] text-emerald-600 font-mono font-black block">{gift.price} • Delivered</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="bg-slate-50 p-1.5 rounded-lg text-[10.5px] italic text-slate-600 leading-snug border border-slate-100/50 line-clamp-2">
+                                    "{gift.message}"
+                                  </div>
+
+                                  <div className="flex justify-between items-center text-[9px] font-mono text-slate-400 pt-1 border-t border-rose-100/40">
+                                    <span>Sent: {gift.dateSent}</span>
+                                    <span className="text-emerald-500 font-bold uppercase tracking-wider">● Secure Locker</span>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Registered Wishlist Items Panel */}
+                      <div className="text-left border-t border-slate-200 pt-6">
+                        <div className="flex justify-between items-center mb-4">
+                          <h4 className="font-extrabold text-[15px] text-slate-850 flex items-center gap-1.5">
+                            <Heart className="w-4 h-4 text-rose-500 fill-rose-500" /> Wishlist Desires Folder
+                          </h4>
+                          <span className="text-[10px] bg-slate-100 font-mono px-2 py-0.5 rounded font-extrabold text-slate-505">
+                            {selectedFriend.wishlist.length} Items Listed
+                          </span>
+                        </div>
+
+                        {/* Edit Wish Box inline */}
+                        {editingWishId && (
+                          <form onSubmit={saveEditedWishlistItem} className="bg-amber-50/50 p-4 rounded-2xl border border-amber-200 mb-4 space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest">Editing Selected Desire Entry</span>
+                              <button type="button" onClick={() => setEditingWishId(null)} className="text-slate-505">
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              <input 
+                                type="text" 
+                                required 
+                                value={editingWishTitle} 
+                                onChange={(e) => setEditingWishTitle(e.target.value)} 
+                                placeholder="Desire Name" 
+                                className="bg-white border rounded px-2.5 py-1 text-xs"
+                              />
+                              <input 
+                                type="text" 
+                                value={editingWishPrice} 
+                                onChange={(e) => setEditingWishPrice(e.target.value)} 
+                                placeholder="Estimated Pricing (e.g. $25)" 
+                                className="bg-white border rounded px-2.5 py-1 text-xs"
+                              />
+                            </div>
+                            <input 
+                              type="text" 
+                              value={editingWishUrl} 
+                              onChange={(e) => setEditingWishUrl(e.target.value)} 
+                              placeholder="Optional purchase link" 
+                              className="bg-white border rounded px-2.5 py-1 text-xs w-full"
+                            />
+                            <div className="flex gap-2 justify-end pt-1">
+                              <button type="button" onClick={() => setEditingWishId(null)} className="px-3 py-1 bg-slate-200 text-slate-700 rounded text-[10.5px] cursor-pointer">Cancel</button>
+                              <button type="submit" className="px-3 py-1 bg-indigo-600 text-white rounded text-[10.5px] cursor-pointer">Save Changes</button>
+                            </div>
+                          </form>
+                        )}
+
+                        {/* Wishlist item catalogs */}
+                        <div className="space-y-2.5 max-h-[290px] overflow-y-auto pr-1">
+                          {selectedFriend.wishlist.length === 0 ? (
+                            <div className="py-8 text-center text-zinc-450 bg-slate-50 rounded-2xl border border-slate-100">
+                              <GiftIcon className="w-10 h-10 mx-auto text-zinc-400 stroke-1 mb-2 animate-pulse" />
+                              <p className="text-xs font-semibold">No wishes defined inside companion folder registry.</p>
+                              <button 
+                                onClick={() => setIsAddingWish(true)} 
+                                className="text-[11px] text-indigo-600 hover:underline font-bold mt-2"
+                              >
+                                Add desire item +
+                              </button>
+                            </div>
+                          ) : (
+                            selectedFriend.wishlist.map(wish => (
+                              <div 
+                                key={wish.id}
+                                className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between gap-1.5 ${
+                                  wish.isClaimed 
+                                    ? "bg-slate-50/70 border-slate-200 opacity-80" 
+                                    : "bg-white border-slate-150 hover:border-slate-300"
+                                }`}
+                              >
+                                <div className="flex justify-between items-start gap-3">
+                                  <div className="flex-1">
+                                    <span className="text-xs font-bold text-slate-800 break-words">{wish.title}</span>
+                                    <div className="flex items-center gap-3 mt-1.5">
+                                      <span className="text-xs font-extrabold text-emerald-600 font-mono">{wish.price}</span>
+                                      {wish.url && (
+                                        <a 
+                                          href={wish.url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer" 
+                                          className="text-[10px] text-indigo-600 hover:underline flex items-center gap-0.5 font-bold"
+                                        >
+                                          Purchase Platform <ExternalLink className="w-2.5 h-2.5" />
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex flex-col gap-1.5 items-end justify-end shrink-0">
+                                    {selectedFriend.id !== 'alex' ? (
+                                      <button
+                                        onClick={() => toggleClaimWishlistItem(selectedFriend.id, wish.id)}
+                                        className={`px-3 py-1 rounded-lg text-[10px] font-bold cursor-pointer inline-flex items-center gap-0.5 ${
+                                          wish.isClaimed
+                                            ? "bg-slate-200 text-slate-705 hover:bg-rose-100 hover:text-rose-600"
+                                            : "bg-indigo-600 text-white hover:bg-indigo-750"
+                                        }`}
+                                      >
+                                        {wish.isClaimed ? "Reserved Guide" : "Claim Gift"}
+                                      </button>
+                                    ) : (
+                                      <span className="text-[10px] text-zinc-400 font-bold bg-zinc-100 px-1.5 py-0.5 rounded uppercase">Self Registry</span>
+                                    )}
+
+                                    <div className="flex gap-1.5 font-semibold">
+                                      <button
+                                        onClick={() => startEditingWishlistItem(wish)}
+                                        className="p-1 text-slate-505 hover:text-indigo-600 hover:bg-indigo-50 rounded cursor-pointer"
+                                        title="Edit wishlist card parameters"
+                                      >
+                                        <Edit3 className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => deleteWishlistItem(wish.id)}
+                                        className="p-1 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded cursor-pointer"
+                                        title="Delete wishlist card parameters"
+                                      >
+                                        <Trash className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {wish.isClaimed && (
+                                  <p className="text-[9.5px] italic font-semibold text-slate-500 bg-slate-100 rounded-lg p-1.5 px-2.5 w-fit">
+                                    🎁 Commitment claimed by: {wish.claimedBy}
+                                  </p>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        {/* Inline desire adding drawer */}
+                        {!isAddingWish && (
+                          <button
+                            onClick={() => setIsAddingWish(true)}
+                            className="mt-4 w-full py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl text-xs font-bold transition-all border border-dashed border-slate-200 flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>Add customized desire option</span>
+                          </button>
+                        )}
+
+                        {isAddingWish && (
+                          <form onSubmit={addWishlistItem} className="mt-4 bg-slate-50 p-4 border border-slate-200 rounded-2xl text-left space-y-3">
+                            <div className="flex justify-between items-center bg-slate-150 p-1.5 rounded-lg">
+                              <h5 className="text-[11px] font-bold text-slate-700 uppercase">Save New Desire Option</h5>
+                              <button type="button" onClick={() => setIsAddingWish(false)} className="text-slate-400 hover:text-slate-650">
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <div>
+                                <label className="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Desire Name / Description</label>
+                                <input
+                                  type="text"
+                                  required
+                                  placeholder="e.g. Saffron Bonsai Plant Pot (Standard size)"
+                                  value={newItemTitle}
+                                  onChange={(e) => setNewItemTitle(e.target.value)}
+                                  className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs focus:ring-1 focus:outline-none"
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Estimated Price Label</label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g. $30.00"
+                                    value={newItemPrice}
+                                    onChange={(e) => setNewItemPrice(e.target.value)}
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs focus:ring-1 focus:outline-none"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">Store / Platform URL</label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g. https://amazon.com/..."
+                                    value={newItemUrl}
+                                    onChange={(e) => setNewItemUrl(e.target.value)}
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs focus:ring-1 focus:outline-none"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <button
+                              type="submit"
+                              className="w-full py-2 bg-indigo-600 hover:bg-indigo-750 text-white text-xs font-bold rounded-xl shadow cursor-pointer transition-colors"
+                            >
+                              Save Desire
+                            </button>
+                          </form>
+                        )}
+                      </div>
+                    </>
+                  )}
 
                 </div>
               </div>
+            ) : (
+              <div className="w-full">
+                {registrySubTab === "wishlist" && (
+                  <div className="space-y-6 animate-fade-in" id="profile-subtab-wishlist">
+                    {/* User profile details ribbon */}
+                    <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 flex flex-col md:flex-row justify-between items-stretch gap-6 shadow-xs text-left" id="my-profile-banner">
+                      <div className="flex gap-4 items-center">
+                        <div className="w-14 h-14 rounded-2xl bg-teal-500 text-white flex items-center justify-center font-black text-2xl font-serif">
+                          {userSession ? userSession.name.split(" ").map(n => n[0]).join("") : "AP"}
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-black text-slate-900">{userSession ? userSession.name : "Alex Patel (You)"}</h3>
+                          <p className="text-xs text-slate-500 font-semibold">Registered Status: <span className="font-extrabold text-indigo-600 font-mono">Self Account</span> • Username: <span className="font-extrabold text-indigo-600">@{userSession ? userSession.username : "alex"}</span></p>
+                          <p className="text-xs text-slate-400">Current calendar birthday: <span className="font-semibold text-indigo-600 font-mono">{userSession ? userSession.birthday : "1997-06-25"}</span></p>
+                        </div>
+                      </div>
 
+                      <div className="flex items-center gap-4">
+                        <div className="bg-teal-50 p-4 rounded-2xl border border-teal-150 text-left min-w-[130px]">
+                          <span className="text-[9px] font-bold text-teal-800 uppercase block select-none">Desires bound</span>
+                          <span className="text-xl font-bold text-slate-900 block font-mono">{friends.find(f => f.id === 'alex')?.wishlist.length} items</span>
+                        </div>
+                        <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-150 text-left min-w-[130px]">
+                          <span className="text-[9px] font-bold text-indigo-800 uppercase block select-none">Claimed by friends</span>
+                          <span className="text-xl font-bold text-slate-900 block font-mono">
+                            {friends.find(f => f.id === 'alex')?.wishlist.filter(w => w.isClaimed).length} items
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Private desires workspace table panel */}
+                    <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 text-left">
+                      <div className="flex justify-between items-center mb-6">
+                        <h4 className="font-bold text-base text-slate-800 flex items-center gap-2">
+                          <Gift className="w-5 h-5 text-rose-500 animate-pulse" /> My Public Wishlist Folders
+                        </h4>
+                        <p className="text-xs text-slate-400">Claims made on this screen simulation represent companions reserving gifts for your landmark day.</p>
+                      </div>
+
+                      {/* Grid items */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {friends.find(f => f.id === 'alex')?.wishlist.map(wish => (
+                          <div 
+                            key={wish.id}
+                            className="p-4 rounded-2xl border border-slate-150 bg-slate-50 flex justify-between items-start gap-4 transition-all hover:bg-slate-100/50"
+                          >
+                            <div className="flex-1">
+                              <span className="text-xs font-bold text-slate-800 block">{wish.title}</span>
+                              <div className="flex items-center gap-3 mt-1.5">
+                                <span className="text-xs font-black text-emerald-600 font-mono">{wish.price}</span>
+                                {wish.url && (
+                                  <a 
+                                    href={wish.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="text-[10px] text-indigo-650 font-bold hover:underline flex items-center gap-0.5"
+                                  >
+                                    Store reference <ExternalLink className="w-2.5 h-2.5" />
+                                  </a>
+                                )}
+                              </div>
+
+                              {wish.isClaimed && (
+                                <div className="mt-3 bg-teal-500/10 border border-teal-500/20 text-teal-800 text-[9.5px] font-bold p-1 px-2.5 rounded-lg w-fit">
+                                  🔒 Reserved in secret by {wish.claimedBy}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex flex-col gap-1 items-end shrink-0">
+                              <button
+                                onClick={() => {
+                                  setSelectedFriendId("alex");
+                                  startEditingWishlistItem(wish);
+                                  setRegistrySubTab("list");
+                                }}
+                                className="p-1 px-2 text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 rounded block font-semibold cursor-pointer"
+                              >
+                                Modify Entry
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedFriendId("alex");
+                                  deleteWishlistItem(wish.id);
+                                }}
+                                className="p-1 px-2 text-[10px] bg-rose-50 hover:bg-rose-100 text-rose-700 rounded block mt-1 cursor-pointer"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Trigger to quick add wishes */}
+                      <div className="pt-6 border-t border-slate-150 mt-6 flex justify-end">
+                        <button
+                          onClick={() => {
+                            setSelectedFriendId("alex");
+                            setIsAddingWish(true);
+                            setRegistrySubTab("list");
+                          }}
+                          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-705 text-white rounded-xl text-xs font-black shadow transition-all flex items-center gap-2 cursor-pointer"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Create desire listing on your registry</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {registrySubTab === "widgets" && (
+                  <div className="space-y-6 animate-fade-in" id="profile-subtab-widgets">
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200 text-left header-explain-widgets">
+                      <h3 className="font-black text-lg text-slate-900">Interactive Device Complication Simulator</h3>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Adjust preferences on the customizer control panel to see live lock screen complications or homescreen frames automatically synchronized dynamically.
+                      </p>
+                    </div>
+
+                    <div className="bg-slate-50 rounded-[2rem] border border-slate-200/50 p-2 md:p-4">
+                      <WidgetSimulator friends={friends} />
+                    </div>
+                  </div>
+                )}
+
+                {registrySubTab === "trophies" && (
+                  <div className="space-y-6 text-left animate-fade-in" id="profile-subtab-trophies">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+                      <div className="md:col-span-8 bg-white rounded-3xl border border-slate-200 p-6 flex flex-col justify-between">
+                        <div>
+                          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block font-mono">Gamification Analyzer</span>
+                          <h3 className="text-xl font-extrabold text-slate-900 mt-1">{userSession ? userSession.name.split(" ")[0] : "Alexander"}'s Pro Gift-Giving Milestones</h3>
+                          <p className="text-xs text-slate-500 mt-0.5 animate-pulse">Collect trophies by creating active lists and claiming companion wishes</p>
+                        </div>
+
+                        <div className="mt-6 space-y-2">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-extrabold text-indigo-600 uppercase tracking-wider">Level Progression</span>
+                            <span className="font-black text-indigo-700 font-mono">Level {unlockLevel} (Gift Master Rank)</span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200">
+                            <div 
+                              className="bg-indigo-600 h-full rounded-full transition-all duration-500"
+                              style={{ width: `${Math.min((friends.find(f => f.id === 'alex')?.achievements.length || 0) * 20, 100)}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between items-center text-[10px] text-zinc-400 font-semibold gap-1">
+                            <span>{(friends.find(f => f.id === 'alex')?.achievements.length || 0)} milestones unlocked</span>
+                            <span>•</span>
+                            <span>{6 - (friends.find(f => f.id === 'alex')?.achievements.length || 0)} left to max prestige</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="md:col-span-4 bg-emerald-50 rounded-3xl border border-emerald-150 p-6 flex flex-col justify-between">
+                        <div>
+                          <h4 className="font-extrabold text-emerald-950 text-sm">Coordinator Roster</h4>
+                          <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                            Share achievements securely with your other sync groups by clicking each awarded badge copy.
+                          </p>
+                        </div>
+                        <div className="bg-white/80 rounded-2xl p-3 border border-emerald-250 text-[11px] font-semibold">
+                          🏆 Prestige Ranks: 
+                          <ul className="list-disc pl-4 mt-1 font-normal text-slate-500 space-y-0.5">
+                            <li>Novice Coordinator (Lvl 1 - 3)</li>
+                            <li>Expert Scheduler (Lvl 4 - 7)</li>
+                            <li>Elite Gift Master (Lvl 8 - 12)</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Badges Grid */}
+                    <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-4">Milestones Achievements Directory</span>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4" id="badges-grid-roster">
+                        {ALL_ACHIEVEMENTS_LIST.map((ach) => {
+                          const isUnlocked = friends.find(f => f.id === 'alex')?.achievements.some(a => a.title === ach.title);
+                          
+                          return (
+                            <div
+                              key={ach.title}
+                              onClick={() => {
+                                if (isUnlocked) {
+                                  const copyText = `🎉 Unlocked Achievement: "${ach.title}" — ${ach.description}`;
+                                  navigator.clipboard.writeText(copyText).then(() => {
+                                    triggerToast("Copied to Clipboard!", "Social sharing text saved successfully in clipboard.");
+                                  });
+                                } else {
+                                  triggerToast("Locked Milestone", "Complete wishlist directories or claim tasks to award this badge.");
+                                }
+                              }}
+                              className={`p-4 rounded-2xl border transition-all flex items-center gap-3.5 ${
+                                isUnlocked 
+                                  ? "bg-gradient-to-br from-emerald-50 to-emerald-100/40 border-emerald-350 hover:border-emerald-500 cursor-pointer shadow-xs" 
+                                  : "bg-slate-50 border-slate-150 opacity-60"
+                              }`}
+                              title={isUnlocked ? "Click to copy achievement to clipboard" : "Milestone Locked"}
+                            >
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm font-serif shrink-0 border ${
+                                isUnlocked ? "bg-emerald-500 text-white border-emerald-350" : "bg-slate-200 text-slate-400 border-slate-300"
+                              }`}>
+                                {isUnlocked ? "🏆" : "🔒"}
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-black text-slate-900 leading-tight block truncate">{ach.title}</p>
+                                <p className="text-[10px] text-slate-500 leading-tight mt-0.5">{ach.description}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Complete System Logs History */}
+                    <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 space-y-4">
+                      <div className="flex justify-between items-center border-b pb-3 border-slate-150">
+                        <h4 className="font-bold text-sm text-slate-905 flex items-center gap-1.5 uppercase tracking-wide">
+                          <Activity className="w-4 h-4 text-indigo-600 animate-spin" /> Workspace Active Activity Ledger
+                        </h4>
+                        <button 
+                          onClick={handleClearLogs}
+                          className="text-xs text-indigo-650 hover:underline font-bold"
+                        >
+                          Clear history logs
+                        </button>
+                      </div>
+
+                      <div className="space-y-1.5 font-mono text-[11px] text-slate-600 max-h-[300px] overflow-y-auto bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                        {logs.map((log, index) => (
+                          <div key={index} className="py-1 border-b border-slate-100 last:border-0 leading-relaxed break-words">
+                            {log}
+                          </div>
+                        ))}
+                        {logs.length === 0 && <p className="text-slate-400 italic font-sans">No operations recorded yet.</p>}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             </div>
           )}
 
@@ -3724,258 +4603,8 @@ if (!userSession) {
             </div>
           )}
 
-          {/* ==================== SCREEN 4: MY PERSONAL WISHLIST HUB ==================== */}
-          {activeSection === "my-wishlist" && (
-            <div className="space-y-6" id="view-my-wishlist-hull">
-              
-              {/* User profile details ribbon */}
-              <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 flex flex-col md:flex-row justify-between items-stretch gap-6 shadow-xs text-left" id="my-profile-banner">
-                <div className="flex gap-4 items-center">
-                  <div className="w-14 h-14 rounded-2xl bg-teal-500 text-white flex items-center justify-center font-black text-2xl font-serif">
-                    AP
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-black text-slate-900">Alex Patel (You)</h3>
-                    <p className="text-xs text-slate-500 font-semibold">Registered Status: <span className="font-extrabold text-zinc-850">Self Account</span> • Age: <span className="font-extrabold text-zinc-850">29</span></p>
-                    <p className="text-xs text-slate-400">Current calendar: <span className="font-semibold text-indigo-600 font-mono">June 25, 1997</span> (Next occurs in soonest months)</p>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="bg-teal-50 p-4 rounded-2xl border border-teal-150 text-left min-w-[130px]">
-                    <span className="text-[9px] font-bold text-teal-800 uppercase block">Desires bound</span>
-                    <span className="text-xl font-bold text-slate-900 block font-mono">{friends.find(f => f.id === 'alex')?.wishlist.length} items</span>
-                  </div>
-                  <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-150 text-left min-w-[130px]">
-                    <span className="text-[9px] font-bold text-indigo-800 uppercase block">Claimed by friends</span>
-                    <span className="text-xl font-bold text-slate-900 block font-mono">
-                      {friends.find(f => f.id === 'alex')?.wishlist.filter(w => w.isClaimed).length} items
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Private desires workspace table panel */}
-              <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 text-left">
-                <div className="flex justify-between items-center mb-6">
-                  <h4 className="font-bold text-base text-slate-850 flex items-center gap-2">
-                    <GiftIcon className="w-5 h-5 text-indigo-600" /> My Public Wishlist Folders
-                  </h4>
-                  <p className="text-xs text-slate-400">Claims made on this screen simulation represent companions reserving gifts for your landmark day.</p>
-                </div>
-
-                {/* Grid items */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {friends.find(f => f.id === 'alex')?.wishlist.map(wish => (
-                    <div 
-                      key={wish.id}
-                      className="p-4 rounded-2xl border border-slate-150 bg-slate-50 flex justify-between items-start gap-4 transition-all"
-                    >
-                      <div className="flex-1">
-                        <span className="text-xs font-bold text-slate-850 block">{wish.title}</span>
-                        <div className="flex items-center gap-3 mt-1.5">
-                          <span className="text-xs font-black text-emerald-600">{wish.price}</span>
-                          {wish.url && (
-                            <a 
-                              href={wish.url} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="text-[10px] text-indigo-600 font-bold hover:underline flex items-center gap-0.5"
-                            >
-                              Store reference <ExternalLink className="w-2.5 h-2.5" />
-                            </a>
-                          )}
-                        </div>
-
-                        {wish.isClaimed && (
-                          <div className="mt-3 bg-teal-500/10 border border-teal-500/20 text-teal-800 text-[9.5px] font-bold p-1 px-2.5 rounded-lg w-fit">
-                            🔒 Reserved in secret by {wish.claimedBy}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex flex-col gap-1 items-end shrink-0">
-                        <button
-                          onClick={() => {
-                            setSelectedFriendId("alex");
-                            startEditingWishlistItem(wish);
-                            setActiveSection("registry");
-                          }}
-                          className="p-1 px-2 text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 rounded block font-semibold"
-                        >
-                          Modify Entry
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedFriendId("alex");
-                            deleteWishlistItem(wish.id);
-                          }}
-                          className="p-1 px-2 text-[10px] bg-rose-50 hover:bg-rose-100 text-rose-650 rounded block mt-1"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Trigger to quick add wishes to Alexa self */}
-                <div className="pt-6 border-t border-slate-150 mt-6 flex justify-end">
-                  <button
-                    onClick={() => {
-                      setSelectedFriendId("alex");
-                      setIsAddingWish(true);
-                      setActiveSection("registry");
-                    }}
-                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow transition-all flex items-center gap-2 cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Create desire listing on your registry</span>
-                  </button>
-                </div>
-              </div>
-
-            </div>
-          )}
-
-          {/* ==================== SCREEN 5: WIDGET STUDIO SIMULATOR ==================== */}
-          {activeSection === "widgets" && (
-            <div className="space-y-6" id="view-widgets-hull">
-              {/* Simulator instruction label */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 text-left header-explain-widgets">
-                <h3 className="font-black text-lg text-slate-900">Interactive Device Complication Simulator</h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Adjust preferences on the customizer control panel to see live lock screen complications or homescreen frames automatically synchronized dynamically.
-                </p>
-              </div>
-
-              {/* Mounted child Widget Simulator with actual friends state */}
-              <div className="bg-slate-50 rounded-[2rem] border border-slate-200/50 p-2 md:p-4">
-                <WidgetSimulator friends={friends} />
-              </div>
-            </div>
-          )}
-
-          {/* ==================== SCREEN 6: MILESTONES & LOGS ==================== */}
-          {activeSection === "achievements" && (
-            <div className="space-y-6 text-left" id="view-achievements-hull">
-              
-              {/* Gamification Level indicators */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
-                <div className="md:col-span-8 bg-white rounded-3xl border border-slate-200 p-6 flex flex-col justify-between">
-                  <div>
-                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Gamification Analyzer</span>
-                    <h3 className="text-xl font-extrabold text-slate-900 mt-1">Alexander's Pro Gift-Giving Milestones</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">Collect trophies by creating active lists and claiming companion wishes</p>
-                  </div>
-
-                  <div className="mt-6 space-y-2">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-extrabold text-indigo-600 uppercase tracking-wider">Level Progression</span>
-                      <span className="font-black text-indigo-750 font-mono">Level {unlockLevel} (Gift Master Rank)</span>
-                    </div>
-                    {/* Visual Progress bar */}
-                    <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200">
-                      <div 
-                        className="bg-indigo-600 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min((friends.find(f => f.id === 'alex')?.achievements.length || 0) * 20, 100)}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between items-center text-[10px] text-zinc-400 font-semibold">
-                      <span>{(friends.find(f => f.id === 'alex')?.achievements.length || 0)} milestones unlocked</span>
-                      <span>{6 - (friends.find(f => f.id === 'alex')?.achievements.length || 0)} left to max prestige</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="md:col-span-4 bg-emerald-50 rounded-3xl border border-emerald-150 p-6 flex flex-col justify-between">
-                  <div>
-                    <h4 className="font-extrabold text-emerald-950 text-sm">Coordinator Roster</h4>
-                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                      Share achievements securely with your other sync groups by clicking each awarded badge copy.
-                    </p>
-                  </div>
-                  <div className="bg-white/80 rounded-2xl p-3 border border-emerald-200 text-[11px] font-semibold">
-                    🏆 Prestige Ranks: 
-                    <ul className="list-disc pl-4 mt-1 font-normal text-slate-500 space-y-0.5">
-                      <li>Novice Coordinator (Lvl 1 - 3)</li>
-                      <li>Expert Scheduler (Lvl 4 - 7)</li>
-                      <li>Elite Gift Master (Lvl 8 - 12)</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* Badges Grid */}
-              <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-4">Milestones Achievements Directory</span>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4" id="badges-grid-roster">
-                  {ALL_ACHIEVEMENTS_LIST.map((ach) => {
-                    const isUnlocked = friends.find(f => f.id === 'alex')?.achievements.some(a => a.title === ach.title);
-                    
-                    return (
-                      <div
-                        key={ach.title}
-                        onClick={() => {
-                          if (isUnlocked) {
-                            const copyText = `🎉 Unlocked Achievement: "${ach.title}" — ${ach.description}`;
-                            navigator.clipboard.writeText(copyText).then(() => {
-                              triggerToast("Copied to Clipboard!", "Social sharing text saved successfully.");
-                            });
-                          } else {
-                            triggerToast("Locked Milestone", "Complete wishlist directories or claim tasks to award this badge.");
-                          }
-                        }}
-                        className={`p-4 rounded-2xl border transition-all flex items-center gap-3.5 ${
-                          isUnlocked 
-                            ? "bg-gradient-to-br from-emerald-50 to-emerald-100/40 border-emerald-300 hover:border-emerald-400 cursor-pointer" 
-                            : "bg-slate-50 border-slate-150 opacity-60"
-                        }`}
-                        title={isUnlocked ? "Click to copy achievement to clipboard" : "Milestone Locked"}
-                      >
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm font-serif shrink-0 border ${
-                          isUnlocked ? "bg-emerald-500 text-white border-emerald-300" : "bg-slate-200 text-slate-400 border-slate-300"
-                        }`}>
-                          {isUnlocked ? "🏆" : "🔒"}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-black text-slate-900 leading-tight block truncate">{ach.title}</p>
-                          <p className="text-[10px] text-slate-505 leading-tight mt-0.5">{ach.description}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Complete System Logs History */}
-              <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 space-y-4">
-                <div className="flex justify-between items-center border-b pb-3 border-slate-150">
-                  <h4 className="font-bold text-sm text-slate-900 flex items-center gap-1.5 uppercase tracking-wide">
-                    <Activity className="w-4 h-4 text-slate-500 animate-spin" /> Workspace Active Activity Ledger
-                  </h4>
-                  <button 
-                    onClick={handleClearLogs}
-                    className="text-xs text-indigo-600 hover:underline font-bold"
-                  >
-                    Clear history logs
-                  </button>
-                </div>
-
-                <div className="space-y-1.5 font-mono text-xs text-slate-705 max-h-[300px] overflow-y-auto bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                  {logs.map((log, index) => (
-                    <div key={index} className="py-1 border-b border-slate-100 last:border-0 leading-relaxed break-words">
-                      {log}
-                    </div>
-                  ))}
-                  {logs.length === 0 && <p className="text-slate-400 italic">No operations recorded yet.</p>}
-                </div>
-              </div>
-
-            </div>
-          )}
+          {/* Screens 4, 5, and 6 are beautifully integrated and consolidated as interactive subsections inside the redone unified My Profile tab view */}
 
           {/* ==================== SCREEN 7: SIGN IN PAGE & ACTIVE DISCOVERY SEARCH ==================== */}
           {activeSection === "signin" && (
@@ -3985,15 +4614,354 @@ if (!userSession) {
               <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-6 rounded-3xl text-left text-white shadow-xl relative overflow-hidden">
                 <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-indigo-500/10 to-transparent pointer-events-none" />
                 <h3 className="text-xl md:text-2xl font-black text-white flex items-center gap-2">
-                  <User className="w-5 h-5 text-indigo-400" />
-                  <span>Interactive Identity Workshop &amp; Search</span>
+                  <Settings className="w-5 h-5 text-indigo-400 animate-spin-slow" style={{ animationDuration: "12s" }} />
+                  <span>Workspace Settings &amp; Personal Preferences</span>
                 </h3>
                 <p className="text-xs text-indigo-200 mt-1.5 leading-relaxed max-w-2xl font-sans">
-                  Configure your current active session user coordinates, and search the global BloomBirth network to instantly discover, claim wishlist desires, or synchronize companion birthday alarms.
+                  Configure alert frequencies, customize in-app parameters, manage global currency symbols, sync profiles via QR Handshakes, and access companion wishlists.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+              {/* Sub-Tabs Control Switcher */}
+              <div className="flex flex-wrap bg-slate-100 p-1.5 rounded-2xl w-full border border-slate-200 shadow-sm max-w-2xl gap-1" id="profile-tabs-wrapper">
+                <button
+                  type="button"
+                  onClick={() => setProfileSubTab("settings")}
+                  className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 min-w-[120px] ${
+                    profileSubTab === "settings"
+                      ? "bg-white text-slate-800 shadow-sm font-black"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  <Sliders className="w-3.5 h-3.5 text-indigo-550" />
+                  <span>Alert Preferences</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProfileSubTab("profile")}
+                  className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 min-w-[120px] ${
+                    profileSubTab === "profile"
+                      ? "bg-white text-slate-800 shadow-sm font-black"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  <User className="w-3.5 h-3.5 text-blue-500" />
+                  <span>My Account</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProfileSubTab("wishlist")}
+                  className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 min-w-[120px] ${
+                    profileSubTab === "wishlist"
+                      ? "bg-white text-slate-800 shadow-sm font-black"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  <Gift className="w-3.5 h-3.5 text-rose-500" />
+                  <span>My Wishlist</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProfileSubTab("widgets")}
+                  className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 min-w-[120px] ${
+                    profileSubTab === "widgets"
+                      ? "bg-white text-slate-800 shadow-sm font-black"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-cyan-500" />
+                  <span>Widgets</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProfileSubTab("trophies")}
+                  className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 min-w-[120px] ${
+                    profileSubTab === "trophies"
+                      ? "bg-white text-slate-800 shadow-sm font-black"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  <Award className="w-3.5 h-3.5 text-amber-550" />
+                  <span>Trophies</span>
+                </button>
+              </div>
+
+              {profileSubTab === "settings" && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch animate-fade-in" id="profile-subtab-settings-deck">
+                  {/* Left preferences pane */}
+                  <div className="lg:col-span-7 bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 shadow-xs space-y-6 flex flex-col justify-between">
+                    <div className="space-y-6">
+                      <div>
+                        <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                          <Bell className="w-4.5 h-4.5 text-indigo-600" />
+                          <span>Notification Channels &amp; Reminders</span>
+                        </h4>
+                        <p className="text-[11px] text-zinc-500 mt-0.5">
+                          Configure how and when the system alerts you in advance of companion special landmarks.
+                        </p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-250 rounded-xl text-left">
+                          <div className="text-left">
+                            <span className="text-xs font-black text-slate-800 block">WhatsApp Notification Gateway</span>
+                            <span className="text-[10px] text-slate-500 mt-1 block">Attempt custom pre-formatted direct messages for active celebrations.</span>
+                          </div>
+                          <div className="flex items-center">
+                            <input 
+                              type="checkbox"
+                              checked={notifyWhatsApp}
+                              onChange={(e) => {
+                                setNotifyWhatsApp(e.target.checked);
+                                if (soundEffectsEnabled) {
+                                  try { new Audio("https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav").play(); } catch(e){}
+                                }
+                                triggerToast("Preference Synced", `WhatsApp messaging is now ${e.target.checked ? "Enabled" : "Disabled"}.`);
+                              }}
+                              className="w-4.5 h-4.5 text-indigo-600 border-slate-350 rounded focus:ring-indigo-500 cursor-pointer"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-250 rounded-xl text-left">
+                          <div className="text-left">
+                            <span className="text-xs font-black text-slate-800 block">Snapchat Swipe Reminders</span>
+                            <span className="text-[10px] text-slate-500 mt-1 block">Toggle reminders to snap buddies and send quick AR filter links.</span>
+                          </div>
+                          <div className="flex items-center">
+                            <input 
+                              type="checkbox"
+                              checked={notifySnapchat}
+                              onChange={(e) => {
+                                setNotifySnapchat(e.target.checked);
+                                if (soundEffectsEnabled) {
+                                  try { new Audio("https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav").play(); } catch(e){}
+                                }
+                                triggerToast("Preference Synced", `Snapchat reminders are now ${e.target.checked ? "Enabled" : "Disabled"}.`);
+                              }}
+                              className="w-4.5 h-4.5 text-indigo-600 border-slate-350 rounded focus:ring-indigo-505 cursor-pointer"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Advance Days Selector */}
+                        <div className="space-y-2 pt-2 text-left">
+                          <div className="flex justify-between items-center text-xs font-bold text-slate-800">
+                            <span>Advance Landmark Alert Lead-time</span>
+                            <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded font-mono font-black">{notifyAdvanceDays} Days Before</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500">
+                            The number of days prior to a birthday that notifications are queued in your activity center feed.
+                          </p>
+                          <input 
+                            type="range"
+                            min="1"
+                            max="14"
+                            value={notifyAdvanceDays}
+                            onChange={(e) => setNotifyAdvanceDays(parseInt(e.target.value, 10))}
+                            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                          />
+                          <div className="flex justify-between text-[9px] text-slate-400 font-bold font-mono">
+                            <span>1 Day (Urgent)</span>
+                            <span>7 Days (Weekly)</span>
+                            <span>14 Days (Biweekly)</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Display Preferences */}
+                      <div className="border-t border-slate-150 pt-5 space-y-4 text-left">
+                        <div>
+                          <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                            <Sliders className="w-4.5 h-4.5 text-indigo-600" />
+                            <span>System &amp; Display Options</span>
+                          </h4>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Global Currency Display</label>
+                            <select 
+                              value={globalCurrency}
+                              onChange={(e) => {
+                                setGlobalCurrency(e.target.value);
+                                triggerToast("Currency Preference", `System cash display changed to ${e.target.value}.`);
+                              }}
+                              className="w-full bg-slate-50 border border-slate-200 text-slate-850 rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-indigo-500 cursor-pointer"
+                            >
+                              <option value="GHS">GHS (Ghana Cedi - ₵)</option>
+                              <option value="USD">USD (US Dollar - $)</option>
+                              <option value="EUR">EUR (Euro - €)</option>
+                              <option value="GBP">GBP (British Pound - £)</option>
+                              <option value="CAD">CAD (Canadian Dollar - $)</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-3 pt-4">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-700">Chime Sound Effects</span>
+                              <input 
+                                type="checkbox"
+                                checked={soundEffectsEnabled}
+                                onChange={(e) => setSoundEffectsEnabled(e.target.checked)}
+                                className="w-4 h-4 text-indigo-600 border-slate-355 rounded focus:ring-indigo-500 cursor-pointer"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-700">Aesthetic Celebration Confetti</span>
+                              <input 
+                                type="checkbox"
+                                checked={confettiOnBirthdays}
+                                onChange={(e) => setConfettiOnBirthdays(e.target.checked)}
+                                className="w-4 h-4 text-indigo-600 border-slate-355 rounded focus:ring-indigo-500 cursor-pointer"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-6 border-t border-slate-150 text-left">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm("Are you sure you want to reset all custom companion data and settings back to system defaults?")) {
+                            localStorage.clear();
+                            triggerToast("System Rebuilt ✅", "Reloaded page and wiped custom preferences memory cache.");
+                            setTimeout(() => {
+                              window.location.reload();
+                            }, 1200);
+                          }
+                        }}
+                        className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 py-3 rounded-2xl text-xs font-black text-center cursor-pointer transition-colors"
+                      >
+                        Reset System Memory Cache to Default
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Right side Security, Privacy & Diagnostic controls */}
+                  <div className="lg:col-span-5 bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 shadow-xs flex flex-col justify-between space-y-6 text-left">
+                    <div className="space-y-6">
+                      <div>
+                        <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                          <EyeOff className="w-4.5 h-4.5 text-indigo-600" />
+                          <span>Privacy &amp; Mutual Sync Rules</span>
+                        </h4>
+                        <p className="text-[11px] text-zinc-500 mt-0.5">
+                          Control how your profile coordinates are viewed by other workspace members.
+                        </p>
+                      </div>
+
+                      <div className="space-y-4 text-left">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">My Profile Visibility Status</label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { key: "Public", desc: "Visible to All" },
+                              { key: "Linked", desc: "Buddies Only" },
+                              { key: "Private", desc: "Fully Stealth" }
+                            ].map(item => (
+                              <button
+                                key={item.key}
+                                type="button"
+                                onClick={() => {
+                                  setGlobalVisibility(item.key as any);
+                                  triggerToast("Privacy State Changed", `Your profile visibility is set to: ${item.key}`);
+                                }}
+                                className={`p-2.5 rounded-xl border text-center cursor-pointer transition-all ${
+                                  globalVisibility === item.key
+                                    ? "bg-indigo-600 border-indigo-600 text-white font-extrabold shadow-sm"
+                                    : "bg-slate-50 border-slate-205 text-slate-600 text-[10.5px] hover:bg-slate-100"
+                                }`}
+                              >
+                                <span className="text-xs block leading-tight">{item.key}</span>
+                                <span className={`text-[8.5px] block mt-0.5 ${globalVisibility === item.key ? "text-indigo-200" : "text-zinc-400"}`}>{item.desc}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="border-t border-slate-150 pt-4 space-y-3">
+                          <div className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 text-left">
+                            <div className="text-left">
+                              <span className="text-xs font-extrabold text-slate-800 block">Confidential Age Mode</span>
+                              <p className="text-[10px] text-slate-500 mt-0.5">Hide your actual age value inside searchable widgets and digital passes.</p>
+                            </div>
+                            <input 
+                              type="checkbox"
+                              checked={!showAgeInProfile}
+                              onChange={(e) => setShowAgeInProfile(!e.target.checked)}
+                              className="w-4 h-4 text-indigo-600 border-slate-350 rounded focus:ring-indigo-500 cursor-pointer"
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 text-left">
+                            <div className="text-left">
+                              <span className="text-xs font-extrabold text-slate-800 block">Auto-Mirror QR Connections</span>
+                              <p className="text-[10px] text-slate-500 mt-0.5">Automatically toggle "Mutual Hands" back when people scan your digital pass.</p>
+                            </div>
+                            <input 
+                              type="checkbox"
+                              checked={autoApproveHandshakes}
+                              onChange={(e) => setAutoApproveHandshakes(e.target.checked)}
+                              className="w-4 h-4 text-indigo-600 border-slate-350 rounded focus:ring-indigo-500 cursor-pointer"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Active Connection & Workspace Status Panel */}
+                      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-150 space-y-3 text-left">
+                        <span className="text-[9px] uppercase tracking-wider font-extrabold text-indigo-600 block">Workspace Metrics</span>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-slate-500">Companions Registered:</span>
+                            <span className="font-extrabold text-slate-800">{friends.length} Buddies</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-slate-500">Notifications Sent:</span>
+                            <span className="font-extrabold text-slate-800">{notifications.length} Logs</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-slate-500">Direct Message State:</span>
+                            <span className="font-extrabold text-emerald-600 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
+                              <span>Live Handshake Ready</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-200">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (soundEffectsEnabled) {
+                                try { new Audio("https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav").play(); } catch(e){}
+                              }
+                              triggerToast("Instant Ping Delivered 🔔", "Aesthetic sound effect chime and alert diagnostics generated successfully!");
+                            }}
+                            className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-black rounded-lg transition-colors cursor-pointer text-center"
+                          >
+                            Diagnose Chime &amp; Test Banner Alert
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 p-4 rounded-2xl text-left text-white space-y-1.5 relative overflow-hidden border border-indigo-900">
+                      <span className="text-[8px] uppercase tracking-widest font-black text-indigo-400 block font-mono">Security Seal</span>
+                      <p className="text-xs font-black text-white leading-tight">Private Local Sandbox Active</p>
+                      <p className="text-[10px] text-indigo-200 leading-normal">
+                        All configuration keys, settings, and companion birthdays are stored locally. No sensitive account tokens exit your viewport browser canvas.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {profileSubTab === "profile" && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
                 
                 {/* COLUMN 1: Active user session configuration form (Span 6) */}
                 <div className="lg:col-span-6 bg-white rounded-[2rem] border border-slate-200 p-6 shadow-xs flex flex-col justify-between">
@@ -4172,6 +5140,55 @@ if (!userSession) {
                         <span>Update Workspace Session</span>
                       </button>
                     </form>
+
+                    {/* HBD Digital Member QR Pass Card */}
+                    <div className="mt-6 border-t border-slate-150 pt-5 space-y-3 text-left">
+                      <div className="flex items-center gap-1.5">
+                        <span className="p-1 px-2 bg-indigo-50 text-indigo-600 rounded-lg font-black text-[9px] tracking-wide uppercase">QR Handshake System</span>
+                        <h5 className="font-extrabold text-[12px] text-slate-800">My Handshake Profile QR Pass</h5>
+                      </div>
+                      
+                      <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-[1.5rem] p-4.5 relative overflow-hidden shadow-sm flex flex-col sm:flex-row items-center gap-4.5 border border-indigo-950/40">
+                        {/* Interactive backdrop glows */}
+                        <div className="absolute -right-12 -top-12 w-28 h-28 rounded-full bg-indigo-550/20 blur-2xl pointer-events-none" />
+                        <div className="absolute -left-12 -bottom-12 w-28 h-28 rounded-full bg-teal-550/10 blur-2xl pointer-events-none" />
+                        
+                        <div className="bg-white p-2 rounded-xl shrink-0 shadow-md">
+                          <img 
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=115x115&data=${encodeURIComponent(JSON.stringify({
+                              hbd: true,
+                              name: userSession ? userSession.name : "Alex Patel",
+                              birthday: userSession ? userSession.birthday : "1997-06-25",
+                              age: "28",
+                              relationship: "Work Colleague",
+                              phone: userSession && "phone" in userSession ? (userSession as any).phone : "+233241234567",
+                              whatsapp: userSession && "whatsapp" in userSession ? (userSession as any).whatsapp : "+233241234567",
+                              email: userSession ? userSession.email : "alex@example.com",
+                              snapchat: userSession ? userSession.username : "alex_snap",
+                              interests: userSession ? userSession.interests.join(", ") : "Cyberpunk, Mechanic Keyboards",
+                              connectedBack: true
+                            }))}`}
+                            alt="Your HBD Profile QR Code Pass"
+                            className="w-[100px] h-[100px] block"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+
+                        <div className="text-center sm:text-left space-y-1.5 min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 justify-center sm:justify-start">
+                            <span className="text-[8.5px] uppercase font-bold text-indigo-400 tracking-wider font-mono">My Digital Pass</span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                          </div>
+                          <div>
+                            <span className="text-sm font-black text-slate-100 block truncate">{userSession ? userSession.name : "Alex Patel"}</span>
+                            <span className="text-[11px] font-mono text-emerald-400 font-bold block">@{userSession ? userSession.username : "alex_patel"}</span>
+                          </div>
+                          <p className="text-[10px] text-slate-350 leading-relaxed max-w-sm">
+                            Show this private token to other HBD dashboard workspace users. Once scanned, your coordinates will populate instantly with mutual 🤝 connections enabled!
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -4294,11 +5311,780 @@ if (!userSession) {
                     </p>
                   </div>
                 </div>
+              </div>
+            )}
+
+              {/* ==================== SUB-TAB 2: MY PUBLIC WISHLIST ==================== */}
+              {profileSubTab === "wishlist" && (
+                <div className="space-y-6 animate-fade-in" id="profile-subtab-wishlist">
+                  {/* User profile details ribbon */}
+                  <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 flex flex-col md:flex-row justify-between items-stretch gap-6 shadow-xs text-left" id="my-profile-banner">
+                    <div className="flex gap-4 items-center">
+                      <div className="w-14 h-14 rounded-2xl bg-teal-500 text-white flex items-center justify-center font-black text-2xl font-serif">
+                        {userSession ? userSession.name.split(" ").map(n => n[0]).join("") : "AP"}
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-black text-slate-905">{userSession ? userSession.name : "Alex Patel (You)"}</h3>
+                        <p className="text-xs text-slate-500 font-semibold">Registered Status: <span className="font-extrabold text-indigo-600 font-mono">Self Account</span> • Username: <span className="font-extrabold text-indigo-600">@{userSession ? userSession.username : "alex"}</span></p>
+                        <p className="text-xs text-slate-400">Current calendar birthday: <span className="font-semibold text-indigo-600 font-mono">{userSession ? userSession.birthday : "1997-06-25"}</span></p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <div className="bg-teal-50 p-4 rounded-2xl border border-teal-150 text-left min-w-[130px]">
+                        <span className="text-[9px] font-bold text-teal-800 uppercase block select-none">Desires bound</span>
+                        <span className="text-xl font-bold text-slate-900 block font-mono">{friends.find(f => f.id === 'alex')?.wishlist.length} items</span>
+                      </div>
+                      <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-150 text-left min-w-[130px]">
+                        <span className="text-[9px] font-bold text-indigo-800 uppercase block select-none">Claimed by friends</span>
+                        <span className="text-xl font-bold text-slate-900 block font-mono">
+                          {friends.find(f => f.id === 'alex')?.wishlist.filter(w => w.isClaimed).length} items
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Private desires workspace table panel */}
+                  <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 text-left">
+                    <div className="flex justify-between items-center mb-6">
+                      <h4 className="font-bold text-base text-slate-850 flex items-center gap-2">
+                        <GiftIcon className="w-5 h-5 text-rose-500 animate-pulse" /> My Public Wishlist Folders
+                      </h4>
+                      <p className="text-xs text-slate-400">Claims made on this screen simulation represent companions reserving gifts for your landmark day.</p>
+                    </div>
+
+                    {/* Grid items */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {friends.find(f => f.id === 'alex')?.wishlist.map(wish => (
+                        <div 
+                          key={wish.id}
+                          className="p-4 rounded-2xl border border-slate-150 bg-slate-50 flex justify-between items-start gap-4 transition-all hover:bg-slate-100/50"
+                        >
+                          <div className="flex-1">
+                            <span className="text-xs font-bold text-slate-850 block">{wish.title}</span>
+                            <div className="flex items-center gap-3 mt-1.5">
+                              <span className="text-xs font-black text-emerald-600 font-mono">{wish.price}</span>
+                              {wish.url && (
+                                <a 
+                                  href={wish.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-[10px] text-indigo-600 font-bold hover:underline flex items-center gap-0.5"
+                                >
+                                  Store reference <ExternalLink className="w-2.5 h-2.5" />
+                                </a>
+                              )}
+                            </div>
+
+                            {wish.isClaimed && (
+                              <div className="mt-3 bg-teal-500/10 border border-teal-500/20 text-teal-850 text-[9.5px] font-bold p-1 px-2.5 rounded-lg w-fit">
+                                🔒 Reserved in secret by {wish.claimedBy}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col gap-1 items-end shrink-0">
+                            <button
+                              onClick={() => {
+                                setSelectedFriendId("alex");
+                                startEditingWishlistItem(wish);
+                                setActiveSection("registry");
+                              }}
+                              className="p-1 px-2 text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 rounded block font-semibold cursor-pointer"
+                            >
+                              Modify Entry
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedFriendId("alex");
+                                deleteWishlistItem(wish.id);
+                              }}
+                              className="p-1 px-2 text-[10px] bg-rose-50 hover:bg-rose-100 text-rose-650 rounded block mt-1 cursor-pointer"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Trigger to quick add wishes to Alexa self */}
+                    <div className="pt-6 border-t border-slate-150 mt-6 flex justify-end">
+                      <button
+                        onClick={() => {
+                          setSelectedFriendId("alex");
+                          setIsAddingWish(true);
+                          setActiveSection("registry");
+                        }}
+                        className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow transition-all flex items-center gap-2 cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Create desire listing on your registry</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ==================== SUB-TAB 3: WIDGET SIMULATOR ==================== */}
+              {profileSubTab === "widgets" && (
+                <div className="space-y-6 animate-fade-in" id="profile-subtab-widgets">
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 text-left header-explain-widgets">
+                    <h3 className="font-black text-lg text-slate-900">Interactive Device Complication Simulator</h3>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Adjust preferences on the customizer control panel to see live lock screen complications or homescreen frames automatically synchronized dynamically.
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-50 rounded-[2rem] border border-slate-200/50 p-2 md:p-4">
+                    <WidgetSimulator friends={friends} />
+                  </div>
+                </div>
+              )}
+
+              {/* ==================== SUB-TAB 4: TROPHIES & LOGS ==================== */}
+              {profileSubTab === "trophies" && (
+                <div className="space-y-6 text-left animate-fade-in" id="profile-subtab-trophies">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+                    <div className="md:col-span-8 bg-white rounded-3xl border border-slate-200 p-6 flex flex-col justify-between">
+                      <div>
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Gamification Analyzer</span>
+                        <h3 className="text-xl font-extrabold text-slate-900 mt-1">{userSession ? userSession.name.split(" ")[0] : "Alexander"}'s Pro Gift-Giving Milestones</h3>
+                        <p className="text-xs text-slate-500 mt-0.5 animate-pulse">Collect trophies by creating active lists and claiming companion wishes</p>
+                      </div>
+
+                      <div className="mt-6 space-y-2">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-extrabold text-indigo-600 uppercase tracking-wider">Level Progression</span>
+                          <span className="font-black text-indigo-755 font-mono">Level {unlockLevel} (Gift Master Rank)</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200">
+                          <div 
+                            className="bg-indigo-600 h-full rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min((friends.find(f => f.id === 'alex')?.achievements.length || 0) * 20, 100)}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between items-center text-[10px] text-zinc-400 font-semibold gap-1">
+                          <span>{(friends.find(f => f.id === 'alex')?.achievements.length || 0)} milestones unlocked</span>
+                          <span>•</span>
+                          <span>{6 - (friends.find(f => f.id === 'alex')?.achievements.length || 0)} left to max prestige</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-4 bg-emerald-50 rounded-3xl border border-emerald-150 p-6 flex flex-col justify-between">
+                      <div>
+                        <h4 className="font-extrabold text-emerald-950 text-sm">Coordinator Roster</h4>
+                        <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                          Share achievements securely with your other sync groups by clicking each awarded badge copy.
+                        </p>
+                      </div>
+                      <div className="bg-white/80 rounded-2xl p-3 border border-emerald-250 text-[11px] font-semibold">
+                        🏆 Prestige Ranks: 
+                        <ul className="list-disc pl-4 mt-1 font-normal text-slate-500 space-y-0.5">
+                          <li>Novice Coordinator (Lvl 1 - 3)</li>
+                          <li>Expert Scheduler (Lvl 4 - 7)</li>
+                          <li>Elite Gift Master (Lvl 8 - 12)</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Badges Grid */}
+                  <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-4">Milestones Achievements Directory</span>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4" id="badges-grid-roster">
+                      {ALL_ACHIEVEMENTS_LIST.map((ach) => {
+                        const isUnlocked = friends.find(f => f.id === 'alex')?.achievements.some(a => a.title === ach.title);
+                        
+                        return (
+                          <div
+                            key={ach.title}
+                            onClick={() => {
+                              if (isUnlocked) {
+                                const copyText = `🎉 Unlocked Achievement: "${ach.title}" — ${ach.description}`;
+                                navigator.clipboard.writeText(copyText).then(() => {
+                                  triggerToast("Copied to Clipboard!", "Social sharing text saved successfully in clipboard.");
+                                });
+                              } else {
+                                triggerToast("Locked Milestone", "Complete wishlist directories or claim tasks to award this badge.");
+                              }
+                            }}
+                            className={`p-4 rounded-2xl border transition-all flex items-center gap-3.5 ${
+                              isUnlocked 
+                                ? "bg-gradient-to-br from-emerald-50 to-emerald-100/40 border-emerald-350 hover:border-emerald-500 cursor-pointer shadow-xs" 
+                                : "bg-slate-50 border-slate-150 opacity-60"
+                            }`}
+                            title={isUnlocked ? "Click to copy achievement to clipboard" : "Milestone Locked"}
+                          >
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm font-serif shrink-0 border ${
+                              isUnlocked ? "bg-emerald-500 text-white border-emerald-350" : "bg-slate-200 text-slate-400 border-slate-300"
+                            }`}>
+                              {isUnlocked ? "🏆" : "🔒"}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-black text-slate-900 leading-tight block truncate">{ach.title}</p>
+                              <p className="text-[10px] text-slate-500 leading-tight mt-0.5">{ach.description}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Complete System Logs History */}
+                  <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 space-y-4">
+                    <div className="flex justify-between items-center border-b pb-3 border-slate-150">
+                      <h4 className="font-bold text-sm text-slate-905 flex items-center gap-1.5 uppercase tracking-wide">
+                        <Activity className="w-4 h-4 text-indigo-600 animate-spin" /> Workspace Active Activity Ledger
+                      </h4>
+                      <button 
+                        onClick={handleClearLogs}
+                        className="text-xs text-indigo-650 hover:underline font-bold"
+                      >
+                        Clear history logs
+                      </button>
+                    </div>
+
+                    <div className="space-y-1.5 font-mono text-[11px] text-slate-600 max-h-[300px] overflow-y-auto bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                      {logs.map((log, index) => (
+                        <div key={index} className="py-1 border-b border-slate-100 last:border-0 leading-relaxed break-words">
+                          {log}
+                        </div>
+                      ))}
+                      {logs.length === 0 && <p className="text-slate-400 italic font-sans">No operations recorded yet.</p>}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               </div>
+            )}
 
+          {/* ==================== SCREEN 7.5: IN-APP GIFT STORE ==================== */}
+          {activeSection === "gift-store" && (
+            <div className="space-y-6 text-left animate-fade-in" id="view-gift-store-hull">
+              {/* Boutique Banner Header */}
+              <div className="bg-gradient-to-r from-rose-950 via-slate-900 to-indigo-950 p-6 md:p-8 rounded-3xl text-left text-white shadow-xl relative overflow-hidden border border-rose-900/30">
+                <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-rose-500/10 to-transparent pointer-events-none" />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+                  <div className="space-y-2 text-left">
+                    <span className="bg-rose-500/20 text-rose-300 text-[10px] font-black tracking-widest px-2.5 py-1 rounded-lg uppercase border border-rose-500/20">
+                      Celebration Boutique
+                    </span>
+                    <h3 className="text-xl md:text-3xl font-black text-white flex items-center gap-2">
+                      <Gift className="w-6 h-6 text-rose-455 animate-bounce" />
+                      <span>The Interactive Companion Gift Store</span>
+                    </h3>
+                    <p className="text-xs text-rose-100 max-w-2xl font-sans leading-relaxed">
+                      Send luxury roses, vibrant flower bouquets, or Golden cash gift tokens directly to your companions. Every present is wrapped inside an interactive virtual parcel complete with custom dedication notes and instant chimes!
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 bg-slate-900/80 p-2 rounded-2xl border border-slate-800 shrink-0 text-left">
+                    <div className="w-10 h-10 bg-rose-500/10 text-rose-400 rounded-xl flex items-center justify-center font-bold">
+                      🎁
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 block">Balance Source</span>
+                      <span className="text-xs font-black text-rose-350 font-mono">Unlimited Sandbox Cash</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sub Navigation Switcher */}
+              <div className="flex bg-slate-100 p-1 rounded-2xl w-full border border-slate-200 shadow-sm max-w-sm" id="store-tabs-wrapper">
+                <button
+                  type="button"
+                  onClick={() => setGiftStoreTab("gallery")}
+                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    giftStoreTab === "gallery"
+                      ? "bg-white text-slate-800 shadow-sm"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  <Gift className="w-3.5 h-3.5 text-rose-505" />
+                  <span>Boutique Inventory</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGiftStoreTab("ledger")}
+                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    giftStoreTab === "ledger"
+                      ? "bg-white text-slate-800 shadow-sm"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  <Activity className="w-3.5 h-3.5 text-indigo-505" />
+                  <span>Delivery Ledger ({sentGifts.length})</span>
+                </button>
+              </div>
+
+              {/* TAB 1: BOUTIQUE GALLERY */}
+              {giftStoreTab === "gallery" && (
+                <div className="space-y-6">
+                  {/* Grid layout */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Item 1: Premium Rose */}
+                    <div className="bg-white border border-rose-100 hover:border-rose-300 shadow-xs p-6 rounded-[2rem] flex flex-col justify-between transition-all group hover:shadow-lg hover:-translate-y-1 relative overflow-hidden text-left">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-rose-50 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition-colors group-hover:bg-rose-100/50" />
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-start">
+                          <span className="text-3xl">🌹</span>
+                          <span className="bg-rose-100 text-rose-700 text-[10px] font-black px-2.5 py-1 rounded-lg uppercase">
+                            Classic Token
+                          </span>
+                        </div>
+                        <div>
+                          <h4 className="font-black text-base text-zinc-900 group-hover:text-rose-755 transition-colors">Premium Red Rose</h4>
+                          <p className="text-[11px] text-zinc-500 font-sans mt-1.5 leading-relaxed">
+                            A single hand-picked dark crimson velvet rose. Expresses timeless elegance, affection, and personal dedication.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block pb-0.5">Unit Cost</span>
+                          <span className="text-base font-black text-rose-600 font-mono">
+                            {getFormattedPrice(5)}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setCustomGiftStoreItem({ id: "rose_regular", name: "Premium Red Rose", type: "rose", usdPrice: 5 });
+                            // Set first friend as default if empty
+                            if (friends.length > 0) {
+                              setGiftRecipientId(friends[0].id);
+                            } else {
+                              setGiftRecipientId("");
+                            }
+                            setGiftRecipientMessage("Roses are red, violets are blue, sending a celebratory flower to you! 🌹✨");
+                            setGiftPaymentMethod("momo");
+                          }}
+                          className="bg-indigo-600 hover:bg-rose-600 text-white font-black text-xs px-4 py-2.5 rounded-xl cursor-pointer transition-all active:scale-95 group-hover:shadow-md"
+                        >
+                          Send Rose
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Item 2: Elegant Bouquet */}
+                    <div className="bg-white border border-rose-100 hover:border-rose-300 shadow-xs p-6 rounded-[2rem] flex flex-col justify-between transition-all group hover:shadow-lg hover:-translate-y-1 relative overflow-hidden text-left">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-pink-50 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition-colors group-hover:bg-pink-100/50" />
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-start">
+                          <span className="text-3xl">💐</span>
+                          <span className="bg-pink-100 text-pink-700 text-[10px] font-black px-2.5 py-1 rounded-lg uppercase">
+                            Deluxe Floral
+                          </span>
+                        </div>
+                        <div>
+                          <h4 className="font-black text-base text-zinc-900 group-hover:text-pink-700 transition-colors">Vibrant Celebration Bouquet</h4>
+                          <p className="text-[11px] text-zinc-500 font-sans mt-1.5 leading-relaxed">
+                            A luxurious wrapped arrangement of tulips, crimson baby-breath, and orchids. Perfect as a gorgeous, high-class surprise statement.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-405 block pb-0.5">Unit Cost</span>
+                          <span className="text-base font-black text-pink-600 font-mono">
+                            {getFormattedPrice(25)}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setCustomGiftStoreItem({ id: "bouquet_luxe", name: "Vibrant Celebration Bouquet", type: "bouquet", usdPrice: 25 });
+                            if (friends.length > 0) {
+                              setGiftRecipientId(friends[0].id);
+                            } else {
+                              setGiftRecipientId("");
+                            }
+                            setGiftRecipientMessage("Sending this gorgeous custom-wrapped bouquet to brighten your landmark week! Have the absolute best birthday! 💐🎂");
+                            setGiftPaymentMethod("momo");
+                          }}
+                          className="bg-indigo-600 hover:bg-pink-600 text-white font-black text-xs px-4 py-2.5 rounded-xl cursor-pointer transition-all active:scale-95 group-hover:shadow-md"
+                        >
+                          Send Bouquet
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Item 3: Money Sack */}
+                    <div className="bg-white border border-rose-100 hover:border-rose-300 shadow-xs p-6 rounded-[2rem] flex flex-col justify-between transition-all group hover:shadow-lg hover:-translate-y-1 relative overflow-hidden text-left">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition-colors group-hover:bg-emerald-100/50" />
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-start">
+                          <span className="text-3xl">💰</span>
+                          <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-2.5 py-1 rounded-lg uppercase">
+                            Prestige Cash
+                          </span>
+                        </div>
+                        <div>
+                          <h4 className="font-black text-base text-zinc-900 group-hover:text-emerald-700 transition-colors">Golden Cash Present Sacks</h4>
+                          <p className="text-[11px] text-zinc-500 font-sans mt-1.5 leading-relaxed">
+                            Send direct digital funds value into your buddy's registered wallet. The companion is instantly notified of dynamic deposit approval.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-405 block pb-0.5">Transfer Value</span>
+                          <span className="text-base font-black text-emerald-600 font-mono">
+                            {getFormattedPrice(100)}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setCustomGiftStoreItem({ id: "money_sack", name: "Golden Cash Present Sacks", type: "money", usdPrice: 100 });
+                            if (friends.length > 0) {
+                              setGiftRecipientId(friends[0].id);
+                            } else {
+                              setGiftRecipientId("");
+                            }
+                            setGiftRecipientMessage("Please enjoy this golden digital cash present to help clear your wishlist desires! Secure shopping! 💸💳");
+                            setGiftPaymentMethod("momo");
+                          }}
+                          className="bg-indigo-600 hover:bg-emerald-600 text-white font-black text-xs px-4 py-2.5 rounded-xl cursor-pointer transition-all active:scale-95 group-hover:shadow-md"
+                        >
+                          Send Money
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Aesthetic Guarantee Alert Card */}
+                  <div className="bg-indigo-50 border border-indigo-100 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center gap-4 text-left">
+                    <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-black animate-pulse">
+                      ℹ️
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-zinc-800 block">Workspace Delivery Guarantee</span>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Whenever you purchase a gift, the recipient buddy is immediately notified inside their local system dashboard. If you've activated active notification gateways (like WhatsApp or Snapchat swipe presets), simulated handshake messages are dispatched with perfect chimes and dynamic success banners!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: SENT GIFT LEDGER */}
+              {giftStoreTab === "ledger" && (
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-6 text-left shadow-xs">
+                  <div>
+                    <h4 className="font-extrabold text-sm text-zinc-900 flex items-center gap-2">
+                      <Activity className="w-4.5 h-4.5 text-indigo-600 animate-pulse" />
+                      <span>Transmitted Celebration Deliveries Log</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Check live statuses or recall dedications sent via Mobile Money or Secure Credit Cards.
+                    </p>
+                  </div>
+
+                  {sentGifts.length === 0 ? (
+                    <div className="p-12 text-center border-2 border-dashed border-slate-200 bg-slate-50/50 rounded-2xl animate-fade-in">
+                      <div className="text-4xl">🛍️</div>
+                      <h5 className="text-xs font-black text-zinc-700 mt-3">No Gifts Dispatched Yet</h5>
+                      <p className="text-[10px] text-slate-400 mt-1 max-w-sm mx-auto font-sans leading-relaxed text-center">
+                        Navigate to our Boutique Inventory tab and purchase premium roses, tulips bouquets, or cash presents to fill this ledger section.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-zinc-850 font-sans border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 text-left">
+                            <th className="pb-3 pl-2">Recipient Buddy</th>
+                            <th className="pb-3">Gift Item</th>
+                            <th className="pb-3">Paid Price</th>
+                            <th className="pb-3">Greetings Card Message</th>
+                            <th className="pb-3">Dispatched Date</th>
+                            <th className="pb-3 pr-2 text-right">Transfer Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sentGifts.map((gift) => (
+                            <tr key={gift.id} className="border-b border-slate-50 text-[11.5px] hover:bg-slate-50/50 transition">
+                              <td className="py-4 pl-2 font-black text-zinc-900 flex items-center gap-2 text-left">
+                                <span className="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded text-[10px] font-mono whitespace-nowrap">@sync_link</span>
+                                <span>{gift.friendName}</span>
+                              </td>
+                              <td className="py-4 font-bold text-slate-700">
+                                {gift.giftType === "rose" && "🌹 "}
+                                {gift.giftType === "bouquet" && "💐 "}
+                                {gift.giftType === "money" && "💰 "}
+                                {gift.giftName}
+                              </td>
+                              <td className="py-4 font-mono font-black text-indigo-650">
+                                {gift.price}
+                              </td>
+                              <td className="py-4 max-w-xs text-zinc-500 leading-tight">
+                                <div className="truncate" title={gift.message}>
+                                  "{gift.message}"
+                                </div>
+                              </td>
+                              <td className="py-4 text-slate-400 font-mono text-[10px]">
+                                {gift.dateSent}
+                              </td>
+                              <td className="py-4 pr-2 text-right">
+                                <span className="bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                                  <span className="w-1 h-1 bg-emerald-500 rounded-full animate-ping" />
+                                  <span>{gift.status}</span>
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* CHECKOUT SYSTEM SLIDE-OVER OVERLAY MODAL */}
+              {customGiftStoreItem && (
+                <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-fade-in">
+                  <div className="bg-white w-full max-w-lg rounded-3xl border border-rose-100 shadow-2xl relative overflow-hidden flex flex-col justify-between">
+                    {/* Header bar */}
+                    <div className="bg-gradient-to-r from-rose-900 to-indigo-950 p-5 text-left text-white flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">
+                          {customGiftStoreItem.type === "rose" && "🌹"}
+                          {customGiftStoreItem.type === "bouquet" && "💐"}
+                          {customGiftStoreItem.type === "money" && "💰"}
+                        </span>
+                        <div>
+                          <h4 className="font-extrabold text-sm text-white">Interactive Gift Dispatch Panel</h4>
+                          <span className="text-[10px] text-rose-200 uppercase font-mono font-bold tracking-wide">
+                            Checkout Present: {customGiftStoreItem.name}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setCustomGiftStoreItem(null)}
+                        className="p-1 px-2.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs cursor-pointer transition border border-white/10"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    {/* Modal Main Form Content */}
+                    <div className="p-6 md:p-8 space-y-5 text-left max-h-[75vh] overflow-y-auto">
+                      {isGiftProcessing ? (
+                        <div className="p-10 text-center flex flex-col items-center justify-center space-y-4">
+                          <div className="w-12 h-12 border-4 border-rose-500 border-t-transparent rounded-full animate-spin" />
+                          <h5 className="text-sm font-black text-zinc-900 mt-2">Active Sandbox Gateway Link Established</h5>
+                          <span className="text-xs text-indigo-650 font-mono font-bold bg-indigo-50 px-3 py-1 rounded-lg">
+                            {giftProcessingStep}
+                          </span>
+                          <p className="text-[10.5px] text-slate-400 font-normal leading-normal max-w-xs font-sans text-center">
+                            Authorizing instant credit and preparing hand-wrapped companion parcel. Chimes will fire upon confirmation signal...
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Pick Buddy Dropdown */}
+                          <div className="space-y-1.5 text-left">
+                            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              Recipient Companion Buddy
+                            </label>
+                            {friends.length === 0 ? (
+                              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800">
+                                ⚠️ No active companion profile found in registry index! Register a buddy profile before gifting.
+                              </div>
+                            ) : (
+                              <select
+                                value={giftRecipientId}
+                                onChange={(e) => setGiftRecipientId(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-205 rounded-xl px-3.5 py-3 text-xs font-semibold outline-none focus:border-indigo-650 cursor-pointer"
+                              >
+                                {friends.map((f) => (
+                                  <option key={f.id} value={f.id}>
+                                    👤 {f.name} (Upcoming Celebration: {f.birthday})
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+
+                          {/* Greetings message cards input */}
+                          <div className="space-y-1.5 text-left">
+                            <div className="flex justify-between items-center">
+                              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                Greetings Card Dedication Message
+                              </label>
+                              <span className="text-[9.5px] font-mono font-bold text-slate-400">
+                                {giftRecipientMessage.length}/150 Chars
+                              </span>
+                            </div>
+                            <textarea
+                              rows={3}
+                              maxLength={150}
+                              value={giftRecipientMessage}
+                              onChange={(e) => setGiftRecipientMessage(e.target.value)}
+                              placeholder="Write a sweet dedications note about special landmark memories..."
+                              className="w-full bg-slate-50 border border-slate-205 rounded-xl p-3 text-xs outline-none focus:border-indigo-650 resize-none font-sans"
+                            />
+                          </div>
+
+                          {/* Payment method selector */}
+                          <div className="space-y-3 pt-2">
+                            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left">
+                              Select Payment Source / Sandbox Token
+                            </span>
+                            <div className="grid grid-cols-3 gap-3">
+                              {/* Option 1: MOMO */}
+                              <button
+                                type="button"
+                                onClick={() => setGiftPaymentMethod("momo")}
+                                className={`p-3 rounded-xl border flex flex-col justify-between h-20 text-left cursor-pointer transition-all ${
+                                  giftPaymentMethod === "momo"
+                                    ? "bg-indigo-600 border-indigo-600 text-white font-extrabold shadow-sm"
+                                    : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                                }`}
+                              >
+                                <span className="text-xs font-bold leading-tight block text-left">Mobile Money</span>
+                                <span className={`text-[8.5px] font-mono leading-none ${giftPaymentMethod === "momo" ? "text-indigo-200" : "text-slate-400"}`}>
+                                  GH Momo Portal
+                                </span>
+                              </button>
+
+                              {/* Option 2: CARD */}
+                              <button
+                                type="button"
+                                onClick={() => setGiftPaymentMethod("card")}
+                                className={`p-3 rounded-xl border flex flex-col justify-between h-20 text-left cursor-pointer transition-all ${
+                                  giftPaymentMethod === "card"
+                                    ? "bg-indigo-600 border-indigo-600 text-white font-extrabold shadow-sm"
+                                    : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                                }`}
+                              >
+                                <span className="text-xs font-bold leading-tight block text-left">Credit Card</span>
+                                <span className={`text-[8.5px] font-mono leading-none ${giftPaymentMethod === "card" ? "text-indigo-200" : "text-slate-400"}`}>
+                                  Visa / MasterCard
+                                </span>
+                              </button>
+
+                              {/* Option 3: Points wrapper */}
+                              <button
+                                type="button"
+                                onClick={() => setGiftPaymentMethod("points")}
+                                className={`p-3 rounded-xl border flex flex-col justify-between h-20 text-left cursor-pointer transition-all ${
+                                  giftPaymentMethod === "points"
+                                    ? "bg-indigo-600 border-indigo-600 text-white font-extrabold shadow-sm"
+                                    : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                                }`}
+                              >
+                                <span className="text-xs font-bold leading-tight block text-left">HBD Points</span>
+                                <span className={`text-[8.5px] font-mono leading-none ${giftPaymentMethod === "points" ? "text-indigo-200" : "text-slate-400"}`}>
+                                  Unlimited Sandbox
+                                </span>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Price calculation block */}
+                          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+                            <div>
+                              <span className="text-[10px] text-slate-400 block font-bold uppercase text-left">Authorized Price</span>
+                              <span className="text-slate-500 font-extrabold text-xs text-left block">Full Checkout Total</span>
+                            </div>
+                            <span className="text-lg font-black text-indigo-700 font-mono">
+                              {getFormattedPrice(customGiftStoreItem.usdPrice)}
+                            </span>
+                          </div>
+
+                          {/* Error block if no friends */}
+                          {friends.length === 0 && (
+                            <p className="text-[10px] text-rose-600 font-bold">
+                              * You must have at least 1 registered buddy in your Registry Console to transmit celebration cards.
+                            </p>
+                          )}
+
+                          {/* Submit button */}
+                          <button
+                            type="button"
+                            disabled={friends.length === 0}
+                            onClick={() => {
+                              setIsGiftProcessing(true);
+                              setGiftProcessingStep("Linking with Secure Momo Node...");
+                              
+                              setTimeout(() => {
+                                setGiftProcessingStep("Encrypting Greetings Card Dedication...");
+                              }, 1100);
+
+                              setTimeout(() => {
+                                setGiftProcessingStep("Delivering Token parcel to Buddy locker...");
+                              }, 2200);
+
+                              setTimeout(() => {
+                                // Finalize checkout
+                                const selectedFriend = friends.find(f => f.id === giftRecipientId) || friends[0];
+                                const formattedPriceString = getFormattedPrice(customGiftStoreItem.usdPrice);
+                                const newGiftLog: SentGift = {
+                                  id: "gift_tx_" + Date.now(),
+                                  friendId: selectedFriend.id,
+                                  friendName: selectedFriend.name,
+                                  giftType: customGiftStoreItem.type,
+                                  giftName: customGiftStoreItem.name,
+                                  price: formattedPriceString,
+                                  status: "Delivered",
+                                  message: giftRecipientMessage.trim() || `Sent a lovely ${customGiftStoreItem.name}!`,
+                                  dateSent: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                                };
+
+                                const updatedGifts = [newGiftLog, ...sentGifts];
+                                setSentGifts(updatedGifts);
+                                localStorage.setItem("hbd_sent_gifts_log", JSON.stringify(updatedGifts));
+
+                                // Add Notification
+                                const newSysNotification = {
+                                  id: "notif_g_" + Date.now(),
+                                  type: "system" as const,
+                                  title: `🎁 Gift Token Dispatched!`,
+                                  message: `Successfully transmitted "${customGiftStoreItem.name}" to ${selectedFriend.name} registry locker (${formattedPriceString}).`,
+                                  timestamp: "Just Now",
+                                  isRead: false
+                                };
+                                setNotifications(prevNotifs => [newSysNotification, ...prevNotifs]);
+
+                                // Post log
+                                appendLog(`Dispatched Interactive ${customGiftStoreItem.name} Present to ${selectedFriend.name} via ${giftPaymentMethod === "momo" ? "Mobile Money" : "Secure Node Pay"}.`);
+
+                                // Fire audio if available
+                                if (soundEffectsEnabled) {
+                                  try { new Audio("https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav").play(); } catch(e){}
+                                }
+
+                                setIsGiftProcessing(false);
+                                setCustomGiftStoreItem(null);
+                                setGiftStoreTab("ledger");
+                                triggerToast("Gift Token Sent Successfully! 🎉", `Delivered velvet bundle to ${selectedFriend.name} with custom greeting!`);
+                              }, 3500);
+                            }}
+                            className={`w-full py-3.5 text-center text-xs font-black rounded-xl text-white transition-all cursor-pointer ${
+                              friends.length === 0
+                                ? "bg-slate-300 font-bold"
+                                : "bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-200"
+                            }`}
+                          >
+                            Proceed &amp; Authorize Sandbox Transaction
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
+
 
           {/* ==================== SCREEN 8: PREMIUM PLANS & SYSTEM CONFIGURATION ==================== */}
           {activeSection === "upgrade" && (
@@ -4670,45 +6456,21 @@ if (!userSession) {
 
         <button
           onClick={() => {
-            setActiveSection("my-wishlist");
+            setActiveSection("profile");
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
           className={`flex-1 flex flex-col items-center justify-center py-1.5 transition-all cursor-pointer ${
-            activeSection === "my-wishlist" ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
+            activeSection === "profile" ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
           }`}
-          title="Alex's Wishlist Hub"
+          title="My Profile"
         >
-          <Gift className="w-4.5 h-4.5 mb-0.5" />
-          <span className="text-[9px] font-bold tracking-tight">My Wish</span>
+          <User className="w-4.5 h-4.5 mb-0.5" />
+          <span className="text-[9px] font-bold tracking-tight">Profile</span>
         </button>
 
-        <button
-          onClick={() => {
-            setActiveSection("widgets");
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-          className={`flex-1 flex flex-col items-center justify-center py-1.5 transition-all cursor-pointer ${
-            activeSection === "widgets" ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
-          }`}
-          title="Widget Simulator"
-        >
-          <Smartphone className="w-4.5 h-4.5 mb-0.5" />
-          <span className="text-[9px] font-bold tracking-tight">Widgets</span>
-        </button>
 
-         <button
-          onClick={() => {
-            setActiveSection("achievements");
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-          className={`flex-1 flex flex-col items-center justify-center py-1.5 transition-all cursor-pointer ${
-            activeSection === "achievements" ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
-          }`}
-          title="Milestones &amp; Logs"
-        >
-          <Award className="w-4.5 h-4.5 mb-0.5" />
-          <span className="text-[9px] font-bold tracking-tight">Trophies</span>
-        </button>
+
+
 
         <button
           onClick={() => {
