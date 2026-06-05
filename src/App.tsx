@@ -478,6 +478,7 @@ export default function App() {
   };
 
   // --- CONNECT & IMPORT WORKSPACE STATES ---
+  const [profileSubTab, setProfileSubTab] = useState<"settings" | "profile" | "wishlist" | "widgets" | "trophies">("settings");
   const [registrySubTab, setRegistrySubTab] = useState<"list" | "wishlist" | "widgets" | "trophies" | "connect">("list");
   const [connectMethod, setConnectMethod] = useState<"contacts" | "username">("contacts");
   const [usernameSearch, setUsernameSearch] = useState<string>("");
@@ -609,6 +610,10 @@ export default function App() {
     } else if (activeSection === "achievements") {
       setActiveSection("registry");
       setRegistrySubTab("trophies");
+    } else if (activeSection === "profile") {
+      setProfileSubTab("profile");
+    } else if (activeSection === "settings") {
+      setProfileSubTab("settings");
     }
   }, [activeSection]);
 
@@ -1513,7 +1518,7 @@ export default function App() {
               }`}
             >
               <Home className="w-4 h-4" />
-              <span>Executive Deck</span>
+              <span>Executive Home</span>
               <span className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-400" />
             </button>
 
@@ -1618,10 +1623,34 @@ export default function App() {
         
         {/* TOP STATUS BAR ROW */}
         <header className="bg-white border-b border-slate-200 px-6 md:px-8 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 z-10 text-left relative" id="main-workspace-header">
+          
+          {/* Mobile-only Branding Bar at top */}
+          <div className="md:hidden flex w-full justify-between items-center pb-2.5 border-b border-slate-100 mb-0.5" id="mobile-workspace-brand">
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-sm shadow-xs">
+                B
+              </span>
+              <h1 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-1">
+                BloomBirth <span className="text-[8px] bg-indigo-100 text-indigo-600 px-1 py-0.2 rounded font-mono uppercase font-black">Pro</span>
+              </h1>
+            </div>
+            {/* Mobile/Compact Settings Button */}
+            <button
+              onClick={() => {
+                setActiveSection("settings");
+              }}
+              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 p-1.5 px-3 rounded-xl border border-slate-200 transition-all cursor-pointer shadow-xs shrink-0"
+              title="Access Workspace Settings"
+            >
+              <Settings className="w-3.5 h-3.5 text-indigo-650 animate-spin" style={{ animationDuration: "12s" }} />
+              <span className="text-[10px] font-extrabold text-slate-800">Settings</span>
+            </button>
+          </div>
+
           <div className="flex w-full md:w-auto items-center justify-between md:justify-start gap-4">
             <div>
-              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black block">Active Workspace Desk</span>
-              <h2 className="text-xl font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
+              <span className="text-[9px] md:text-[10px] text-slate-400 uppercase tracking-widest font-black block">Active Workspace Desk</span>
+              <h2 className="text-lg md:text-xl font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
                 {activeSection === "dashboard" && "Executive Command Center"}
                 {activeSection === "registry" && "Buddies Registry Console"}
                 {activeSection === "ai-lab" && "Smart Spark AI Gift Lab"}
@@ -1633,20 +1662,6 @@ export default function App() {
                 {activeSection === "upgrade" && "Premium Plan Tiers"}
               </h2>
             </div>
-
-            {/* Mobile/Compact Settings Button in top corner */}
-            <button
-              onClick={() => {
-                setActiveSection("settings");
-              }}
-              className="md:hidden flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 p-1.5 pr-2 rounded-xl border border-slate-200 transition-all cursor-pointer shadow-xs shrink-0"
-              title="Access Workspace Settings"
-            >
-              <Settings className="w-3.5 h-3.5 text-indigo-650 animate-spin" style={{ animationDuration: "12s" }} />
-              <span className="text-[10.5px] font-black text-slate-800">Settings</span>
-            </button>
-
-
           </div>
 
           {/* Quick Header actions integration */}
@@ -1688,8 +1703,25 @@ export default function App() {
                </div>
             </button>
 
+            {/* QR Scanner Direct Header Trigger */}
             <button
-              onClick={() => setShowAddProfile(true)}
+              onClick={() => {
+                setShowAddProfile(true);
+                setIsQrScannerActive(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-2.5 bg-[#FAF9FF] border border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 text-indigo-700 rounded-xl text-xs font-bold shadow-xs transition-with-all cursor-pointer active:scale-95 shrink-0"
+              title="Scan buddy profile QR card"
+              id="header-scan-buddy-btn"
+            >
+              <Camera className="w-4 h-4 text-indigo-600 animate-pulse" />
+              <span className="hidden sm:inline">Scan QR</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setShowAddProfile(true);
+                setIsQrScannerActive(false);
+              }}
               className="flex-1 sm:flex-none justify-center px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-150 transition-all cursor-pointer active:scale-95"
               id="header-profile-add-btn"
             >
@@ -4186,6 +4218,7 @@ export default function App() {
 
                 </div>
               </div>
+              </div>
             ) : (
               <div className="w-full">
                 {registrySubTab === "wishlist" && (
@@ -4606,8 +4639,8 @@ export default function App() {
 
           {/* Screens 4, 5, and 6 are beautifully integrated and consolidated as interactive subsections inside the redone unified My Profile tab view */}
 
-          {/* ==================== SCREEN 7: SIGN IN PAGE & ACTIVE DISCOVERY SEARCH ==================== */}
-          {activeSection === "signin" && (
+          {/* ==================== SCREEN 7: MY PROFILE & WORKSPACE SETTINGS ==================== */}
+          {(activeSection === "profile" || activeSection === "settings" || activeSection === "signin") && (
             <div className="space-y-6 text-left" id="view-signin-custom-hull">
               
               {/* Introduction Banner */}
@@ -4626,7 +4659,10 @@ export default function App() {
               <div className="flex flex-wrap bg-slate-100 p-1.5 rounded-2xl w-full border border-slate-200 shadow-sm max-w-2xl gap-1" id="profile-tabs-wrapper">
                 <button
                   type="button"
-                  onClick={() => setProfileSubTab("settings")}
+                  onClick={() => {
+                    setProfileSubTab("settings");
+                    setActiveSection("settings");
+                  }}
                   className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 min-w-[120px] ${
                     profileSubTab === "settings"
                       ? "bg-white text-slate-800 shadow-sm font-black"
@@ -4638,7 +4674,10 @@ export default function App() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setProfileSubTab("profile")}
+                  onClick={() => {
+                    setProfileSubTab("profile");
+                    setActiveSection("profile");
+                  }}
                   className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 min-w-[120px] ${
                     profileSubTab === "profile"
                       ? "bg-white text-slate-800 shadow-sm font-black"
@@ -4650,7 +4689,10 @@ export default function App() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setProfileSubTab("wishlist")}
+                  onClick={() => {
+                    setProfileSubTab("wishlist");
+                    setActiveSection("profile");
+                  }}
                   className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 min-w-[120px] ${
                     profileSubTab === "wishlist"
                       ? "bg-white text-slate-800 shadow-sm font-black"
@@ -4662,7 +4704,10 @@ export default function App() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setProfileSubTab("widgets")}
+                  onClick={() => {
+                    setProfileSubTab("widgets");
+                    setActiveSection("profile");
+                  }}
                   className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 min-w-[120px] ${
                     profileSubTab === "widgets"
                       ? "bg-white text-slate-800 shadow-sm font-black"
@@ -4674,7 +4719,10 @@ export default function App() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setProfileSubTab("trophies")}
+                  onClick={() => {
+                    setProfileSubTab("trophies");
+                    setActiveSection("profile");
+                  }}
                   className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 min-w-[120px] ${
                     profileSubTab === "trophies"
                       ? "bg-white text-slate-800 shadow-sm font-black"
@@ -4687,7 +4735,8 @@ export default function App() {
               </div>
 
               {profileSubTab === "settings" && (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch animate-fade-in" id="profile-subtab-settings-deck">
+                <>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch animate-fade-in" id="profile-subtab-settings-deck">
                   {/* Left preferences pane */}
                   <div className="lg:col-span-7 bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 shadow-xs space-y-6 flex flex-col justify-between">
                     <div className="space-y-6">
@@ -4958,6 +5007,171 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+
+                {/* SMART OPTIMIZATION RECOMMENDATIONS BOARD */}
+                <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-6 md:p-8 space-y-6 text-left shadow-sm mt-8">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4 border-slate-200">
+                    <div className="space-y-1">
+                      <h4 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-indigo-650 animate-pulse" />
+                        <span>Smart Workspace Tuning Desk</span>
+                      </h4>
+                      <p className="text-xs text-slate-500">
+                        Dynamic workspace attributes analyzed in real-time. Optimize alerts, privacy boundaries, and media delivery.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] uppercase font-black tracking-wider text-slate-400">Diagnosis State:</span>
+                      {(!soundEffectsEnabled || notifyAdvanceDays < 7 || globalVisibility === "Public" || !confettiOnBirthdays || !autoApproveHandshakes) ? (
+                        <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 font-mono text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                          <span>Actionable Suggestions Ready</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 font-mono text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span>100% Fully Optimized</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Suggestion 1: Advance lead time */}
+                    {notifyAdvanceDays < 7 && (
+                      <div className="p-4 bg-white border border-slate-150 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors hover:border-slate-300">
+                        <div className="space-y-1 text-left">
+                          <span className="text-[9px] font-black uppercase text-amber-600 bg-amber-50 px-2 py-0.5 rounded tracking-wide">Urgency Alert</span>
+                          <p className="text-xs font-bold text-slate-800">Landmark Alert Lead-Time is Short (Current: {notifyAdvanceDays} Days)</p>
+                          <p className="text-[11px] text-slate-500">Altering alerts to a shorter warning than a week might delay processing custom deliveries from your workspace gift boutique. Adjusting to at least 7 days is suggested.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNotifyAdvanceDays(7);
+                            triggerToast("Lead-time Optimized", "Adjusted advance warning lead-time to 7 days for boutique preparation.");
+                            if (soundEffectsEnabled) {
+                              try { new Audio("https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav").play(); } catch(e){}
+                            }
+                          }}
+                          className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 hover:scale-[1.02] text-white font-black text-xs rounded-xl transition-all cursor-pointer shadow-xs shrink-0"
+                        >
+                          Optimize to 7 Days
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Suggestion 2: Chime Sound Effects */}
+                    {!soundEffectsEnabled && (
+                      <div className="p-4 bg-white border border-slate-150 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors hover:border-slate-300">
+                        <div className="space-y-1 text-left">
+                          <span className="text-[9px] font-black uppercase text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded tracking-wide">Acoustic Chimes</span>
+                          <p className="text-xs font-bold text-slate-800">Chime Sound Effects Muted</p>
+                          <p className="text-[11px] text-slate-500">Enable comforting auditory chime feedback when saving gifts, scanning QR handshakes, and completing workspace updates.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSoundEffectsEnabled(true);
+                            triggerToast("Acoustics Optimized", "Auditory sound effect chimes have been enabled.");
+                            try { new Audio("https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav").play(); } catch(e){}
+                          }}
+                          className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 hover:scale-[1.02] text-white font-black text-xs rounded-xl transition-all cursor-pointer shadow-xs shrink-0"
+                        >
+                          Enable Sound Chimes
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Suggestion 3: Privacy Visibility */}
+                    {globalVisibility === "Public" && (
+                      <div className="p-4 bg-white border border-slate-150 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors hover:border-slate-300">
+                        <div className="space-y-1 text-left">
+                          <span className="text-[9px] font-black uppercase text-rose-600 bg-rose-50 px-2 py-0.5 rounded tracking-wide">Security &amp; Stealth</span>
+                          <p className="text-xs font-bold text-slate-800">Broad Public Discoverability is Active</p>
+                          <p className="text-[11px] text-slate-500">If your workspace is private, limit discoverability to Linked Buddies Only to restrict global search queries and secure your identity card.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGlobalVisibility("Linked");
+                            triggerToast("Privacy Tuned", "Discoverability restricted to Linked Buddies Only.");
+                            if (soundEffectsEnabled) {
+                              try { new Audio("https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav").play(); } catch(e){}
+                            }
+                          }}
+                          className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 hover:scale-[1.02] text-white font-black text-xs rounded-xl transition-all cursor-pointer shadow-xs shrink-0"
+                        >
+                          Restrict to Linked Only
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Suggestion 4: Confetti celebrate */}
+                    {!confettiOnBirthdays && (
+                      <div className="p-4 bg-white border border-slate-150 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors hover:border-slate-300">
+                        <div className="space-y-1 text-left">
+                          <span className="text-[9px] font-black uppercase text-purple-600 bg-purple-50 px-2 py-0.5 rounded tracking-wide">Festivity Chimes</span>
+                          <p className="text-xs font-bold text-slate-800">Celebration Confetti Disallowed</p>
+                          <p className="text-[11px] text-slate-500">Allow gorgeous aesthetic confetti explosions when viewing interactive companion countdowns and milestones.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setConfettiOnBirthdays(true);
+                            triggerToast("Festivals Enabled", "Milestone confetti explosion triggers have been enabled.");
+                            if (soundEffectsEnabled) {
+                              try { new Audio("https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav").play(); } catch(e){}
+                            }
+                          }}
+                          className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 hover:scale-[1.02] text-white font-black text-xs rounded-xl transition-all cursor-pointer shadow-xs shrink-0"
+                        >
+                          Enable Confetti
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Suggestion 5: Auto handshake reciprocating */}
+                    {!autoApproveHandshakes && (
+                      <div className="p-4 bg-white border border-slate-150 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors hover:border-slate-300">
+                        <div className="space-y-1 text-left">
+                          <span className="text-[9px] font-black uppercase text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded tracking-wide">Sync Automation</span>
+                          <p className="text-xs font-bold text-slate-800">Reciprocal QR Handshakes are Manual</p>
+                          <p className="text-[11px] text-slate-500">Automatically connect back and mirror mutual buddies when people scan your digital pass to streamline workspace synchronization.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAutoApproveHandshakes(true);
+                            triggerToast("QR Sync Automation Activated", "Handshake reciprocity set to auto-mirror.");
+                            if (soundEffectsEnabled) {
+                              try { new Audio("https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav").play(); } catch(e){}
+                            }
+                          }}
+                          className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 hover:scale-[1.02] text-white font-black text-xs rounded-xl transition-all cursor-pointer shadow-xs shrink-0"
+                        >
+                          Activate Reciprocity
+                        </button>
+                      </div>
+                    )}
+
+                    {/* All optimised banner */}
+                    {soundEffectsEnabled && notifyAdvanceDays >= 7 && globalVisibility !== "Public" && confettiOnBirthdays && autoApproveHandshakes && (
+                      <div className="p-8 bg-gradient-to-br from-indigo-950 to-indigo-900 border border-indigo-800 text-white rounded-3xl flex flex-col md:flex-row items-center gap-6 shadow-md">
+                        <div className="w-14 h-14 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-400 shrink-0 border border-indigo-500/20">
+                          <Check className="w-7 h-7 text-indigo-400 animate-bounce" />
+                        </div>
+                        <div className="space-y-1.5 text-left">
+                          <h5 className="font-extrabold text-base text-white">All Workspace Diagnostics in Perfect Alignment!</h5>
+                          <p className="text-[11px] leading-relaxed text-indigo-200">
+                            Your companion notifications, audio feedback, reciprocity handshakes, display options, and security privacy filters are fully tuned to maximize digital integration. Great job managing your workspace!
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
               )}
 
               {profileSubTab === "profile" && (
@@ -6417,10 +6631,10 @@ export default function App() {
           className={`flex-1 flex flex-col items-center justify-center py-1.5 transition-all cursor-pointer ${
             activeSection === "dashboard" ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
           }`}
-          title="Executive Deck"
+          title="Executive Home"
         >
           <Home className="w-4.5 h-4.5 mb-0.5" />
-          <span className="text-[9px] font-bold tracking-tight">Deck</span>
+          <span className="text-[9px] font-bold tracking-tight">Home</span>
         </button>
 
         <button
