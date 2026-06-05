@@ -54,6 +54,90 @@ import { motion, AnimatePresence } from "motion/react";
 import { LoginPage } from "./components/LoginPage";
 import { BirthdayDashboard } from "./components/BirthdayDashboard";
 
+interface StoreGiftItem {
+  id: string;
+  name: string;
+  type: string;
+  emoji: string;
+  usdPrice: number;
+  category: string;
+  description: string;
+}
+
+const GIFT_INVENTORY: StoreGiftItem[] = [
+  {
+    id: "rose_regular",
+    name: "Premium Red Rose",
+    type: "rose",
+    emoji: "🌹",
+    usdPrice: 5,
+    category: "Classic Token",
+    description: "A single hand-picked dark crimson velvet rose. Expresses timeless elegance, affection, and personal dedication."
+  },
+  {
+    id: "bouquet_luxe",
+    name: "Vibrant Celebration Bouquet",
+    type: "bouquet",
+    emoji: "💐",
+    usdPrice: 25,
+    category: "Deluxe Floral",
+    description: "A luxurious wrapped arrangement of tulips, crimson baby-breath, and orchids. Perfect as a gorgeous, high-class surprise statement."
+  },
+  {
+    id: "cake_deluxe",
+    name: "Deluxe Birthday Cake",
+    type: "cake",
+    emoji: "🎂",
+    usdPrice: 15,
+    category: "Gourmet Confection",
+    description: "A fresh multi-layered vanilla buttercream frosting cake with decorative candles, sparkles, and direct interactive wishes."
+  },
+  {
+    id: "chocolate_artisan",
+    name: "Artisan Chocolate Box",
+    type: "chocolate",
+    emoji: "🍫",
+    usdPrice: 12,
+    category: "Gourmet Sweet",
+    description: "A handcrafted collection of imported Belgian dark and milk chocolate pralines wrapped in a sleek satin ribbon presentation."
+  },
+  {
+    id: "champagne_celebration",
+    name: "Premium Champagne",
+    type: "beverage",
+    emoji: "🍾",
+    usdPrice: 35,
+    category: "Luxury Drink",
+    description: "A chilled bottle of premium vintage sparkling champagne. Uncork the perfect visual pop and raise a digital toast to major milestones!"
+  },
+  {
+    id: "teddy_bear",
+    name: "Cute Velvet Teddy",
+    type: "teddy",
+    emoji: "🧸",
+    usdPrice: 18,
+    category: "Cute Keepsake",
+    description: "An ultra-soft cuddly companion buddy dressed in a custom celebration sash. Keeps workspace desks cozy & cheerful."
+  },
+  {
+    id: "money_sack",
+    name: "Golden Cash Present Sacks",
+    type: "money",
+    emoji: "💰",
+    usdPrice: 100,
+    category: "Prestige Cash",
+    description: "Send direct digital funds value into your buddy's registered wallet. The companion is instantly notified of dynamic deposit approval."
+  },
+  {
+    id: "card_digital",
+    name: "Visual Dedication Card",
+    type: "card",
+    emoji: "✉️",
+    usdPrice: 2,
+    category: "Message Plus",
+    description: "An interactive full-viewport card theme option complete with animations, sparkles background, and custom chimes."
+  }
+];
 
 export default function App() {
   // --- AUTHENTICATED USER SESSION STATE ---
@@ -206,9 +290,55 @@ export default function App() {
     const saved = localStorage.getItem("hbd_settings_sounds_enabled");
     return saved ? saved === "true" : true;
   });
+  const [userRegion, setUserRegion] = useState<"Ghana" | "Other Africa" | "USA/Western" | "Default">(() => {
+    const saved = localStorage.getItem("hbd_pricing_region");
+    if (saved) return saved as any;
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      if (tz.includes("Accra") || tz.includes("Ghana")) return "Ghana";
+      if (
+        tz.includes("Lagos") ||
+        tz.includes("Nairobi") ||
+        tz.includes("Kigali") ||
+        tz.includes("Dar_es_Salaam") ||
+        tz.includes("Kampala") ||
+        tz.includes("Lusaka") ||
+        tz.includes("Harare") ||
+        tz.includes("Johannesburg") ||
+        tz.includes("Cairo") ||
+        tz.includes("Abidjan") ||
+        tz.includes("Africa")
+      ) {
+        return "Other Africa";
+      }
+      if (
+        tz.includes("New_York") ||
+        tz.includes("Los_Angeles") ||
+        tz.includes("Chicago") ||
+        tz.includes("London") ||
+        tz.includes("Paris") ||
+        tz.includes("Berlin") ||
+        tz.includes("Toronto") ||
+        tz.includes("Sydney") ||
+        tz.includes("Europe") ||
+        tz.includes("America")
+      ) {
+        return "USA/Western";
+      }
+    } catch(e) {}
+    return "Default";
+  });
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+  const [isAiLabOpen, setIsAiLabOpen] = useState<boolean>(false);
+
   const [globalCurrency, setGlobalCurrency] = useState<string>(() => {
     const saved = localStorage.getItem("hbd_settings_currency");
-    return saved || "GHS";
+    if (saved) return saved;
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      if (tz.includes("Accra") || tz.includes("Ghana")) return "GHS";
+    } catch (e) {}
+    return "USD";
   });
   const [confettiOnBirthdays, setConfettiOnBirthdays] = useState<boolean>(() => {
     const saved = localStorage.getItem("hbd_settings_confetti");
@@ -230,8 +360,9 @@ export default function App() {
 
   // --- IN-APP GIFT STORE MANAGEMENT STATES ---
   const [giftStoreTab, setGiftStoreTab] = useState<"gallery" | "ledger">("gallery");
-  const [customGiftStoreItem, setCustomGiftStoreItem] = useState<{ id: string; name: string; type: "rose" | "bouquet" | "money"; usdPrice: number } | null>(null);
+  const [customGiftStoreItem, setCustomGiftStoreItem] = useState<{ id: string; name: string; type: string; usdPrice: number } | null>(null);
   const [giftRecipientId, setGiftRecipientId] = useState<string>("");
+  const [giftRevealDate, setGiftRevealDate] = useState<string>("");
   const [giftRecipientMessage, setGiftRecipientMessage] = useState<string>("");
   const [giftPaymentMethod, setGiftPaymentMethod] = useState<"momo" | "card" | "points">("momo");
   const [isGiftProcessing, setIsGiftProcessing] = useState<boolean>(false);
@@ -264,6 +395,7 @@ export default function App() {
     localStorage.setItem("hbd_settings_sounds_enabled", String(soundEffectsEnabled));
     localStorage.setItem("hbd_settings_currency", globalCurrency);
     localStorage.setItem("hbd_settings_confetti", String(confettiOnBirthdays));
+    localStorage.setItem("hbd_pricing_region", userRegion);
   }, [
     notifyWhatsApp,
     notifySnapchat,
@@ -273,12 +405,58 @@ export default function App() {
     showAgeInProfile,
     soundEffectsEnabled,
     globalCurrency,
-    confettiOnBirthdays
+    confettiOnBirthdays,
+    userRegion
   ]);
 
   // Sync sent gifts
   useEffect(() => {
     localStorage.setItem("hbd_sent_gifts_log", JSON.stringify(sentGifts));
+  }, [sentGifts]);
+
+  const getTodayDateString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // Poll to reveal scheduled gifts whose reveal date has arrived
+  useEffect(() => {
+    let changed = false;
+    const todayStr = getTodayDateString();
+    
+    const updatedGifts = sentGifts.map(gift => {
+      if (gift.status === "Scheduled" && gift.revealDate && gift.revealDate <= todayStr) {
+        changed = true;
+        
+        // Add Notification
+        const newSysNotification = {
+          id: "notif_reveal_" + Date.now() + "_" + Math.random(),
+          type: "system" as const,
+          title: `🎁 Scheduled Gift Delivered!`,
+          message: `The scheduled gift "${gift.giftName}" for ${gift.friendName} has been unlocked and delivered today!`,
+          timestamp: "Just Now",
+          isRead: false
+        };
+        setNotifications(prevNotifs => [newSysNotification, ...prevNotifs]);
+        
+        appendLog(`[Scheduler] "${gift.giftName}" scheduled reveal for ${gift.friendName} triggered. Status updated to Delivered.`);
+        
+        return {
+          ...gift,
+          status: "Delivered"
+        };
+      }
+      return gift;
+    });
+    
+    if (changed) {
+      setSentGifts(updatedGifts);
+      localStorage.setItem("hbd_sent_gifts_log", JSON.stringify(updatedGifts));
+      triggerToast("Scheduled Gift Revealed! 🎁", `Gifts scheduled for delivery have been opened for recipients.`);
+    }
   }, [sentGifts]);
 
   // Local state for the search bar inside the integrated Sign In Page
@@ -1538,9 +1716,9 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveSection("ai-lab")}
+              onClick={() => setIsAiLabOpen(true)}
               className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${
-                activeSection === "ai-lab"
+                isAiLabOpen
                   ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/30 font-extrabold"
                   : "text-slate-400 hover:text-white hover:bg-slate-800/60"
               }`}
@@ -1565,10 +1743,11 @@ export default function App() {
 
             <button
               onClick={() => {
+                setProfileSubTab("profile");
                 setActiveSection("profile");
               }}
               className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${
-                activeSection === "profile"
+                activeSection === "profile" && profileSubTab !== "settings"
                   ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/30 font-extrabold"
                   : "text-slate-400 hover:text-white hover:bg-slate-800/60"
               }`}
@@ -1580,10 +1759,11 @@ export default function App() {
 
             <button
               onClick={() => {
-                setActiveSection("settings");
+                setProfileSubTab("settings");
+                setActiveSection("profile");
               }}
               className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${
-                activeSection === "settings"
+                activeSection === "profile" && profileSubTab === "settings"
                   ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/30 font-extrabold"
                   : "text-slate-400 hover:text-white hover:bg-slate-800/60"
               }`}
@@ -4470,6 +4650,27 @@ export default function App() {
 
           {/* ==================== SCREEN 3: SMART AI GIFT LAB ==================== */}
           {activeSection === "ai-lab" && (
+            <div className="bg-white rounded-[2rem] border border-slate-200 p-8 text-center space-y-6 max-w-xl mx-auto my-12 shadow-sm" id="view-ai-lab-hull">
+              <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-xs">
+                <Sparkles className="w-8 h-8 animate-pulse" />
+              </div>
+              <h3 className="font-extrabold text-lg text-slate-900 leading-tight font-sans">Gemini Spark AI Ideas</h3>
+              <p className="text-xs text-slate-500 leading-relaxed font-sans font-medium">
+                The AI Gift Suggestions feature is now a global floating Sparkle Assistant! You can launch it instantly from the bottom right corner of any view, so you never lose your place.
+              </p>
+              <div className="pt-2">
+                <button
+                  onClick={() => setIsAiLabOpen(true)}
+                  className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer inline-flex items-center gap-2 border-none"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Summon Spark Assistant</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeSection === "ai-lab-legacy-hidden" && (
             <div className="bg-indigo-50/50 rounded-[2rem] border border-indigo-100 p-6 md:p-8 space-y-6 text-left" id="view-ai-lab-hull">
               
               {/* Header explanation banner */}
@@ -5842,146 +6043,79 @@ export default function App() {
                 <div className="space-y-6">
                   {/* Grid layout */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Item 1: Premium Rose */}
-                    <div className="bg-white border border-rose-100 hover:border-rose-300 shadow-xs p-6 rounded-[2rem] flex flex-col justify-between transition-all group hover:shadow-lg hover:-translate-y-1 relative overflow-hidden text-left">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-rose-50 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition-colors group-hover:bg-rose-100/50" />
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-start">
-                          <span className="text-3xl">🌹</span>
-                          <span className="bg-rose-100 text-rose-700 text-[10px] font-black px-2.5 py-1 rounded-lg uppercase">
-                            Classic Token
-                          </span>
+                    {GIFT_INVENTORY.map((item) => (
+                      <div key={item.id} className="bg-white border border-rose-100 hover:border-rose-300 shadow-xs p-6 rounded-[2rem] flex flex-col justify-between transition-all group hover:shadow-lg hover:-translate-y-1 relative overflow-hidden text-left">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-rose-50/50 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition-colors group-hover:bg-rose-100/30" />
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-start">
+                            <span className="text-3xl filter drop-shadow-xs">{item.emoji}</span>
+                            <span className="bg-rose-50 text-rose-700 text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider border border-rose-100/40">
+                              {item.category}
+                            </span>
+                          </div>
+                          <div>
+                            <h4 className="font-black text-base text-zinc-900 group-hover:text-rose-700 transition-colors flex items-center gap-1.5">
+                              <span>{item.name}</span>
+                            </h4>
+                            <p className="text-[11px] text-zinc-500 font-sans mt-1.5 leading-relaxed">
+                              {item.description}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-black text-base text-zinc-900 group-hover:text-rose-755 transition-colors">Premium Red Rose</h4>
-                          <p className="text-[11px] text-zinc-500 font-sans mt-1.5 leading-relaxed">
-                            A single hand-picked dark crimson velvet rose. Expresses timeless elegance, affection, and personal dedication.
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between">
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block pb-0.5">Unit Cost</span>
-                          <span className="text-base font-black text-rose-600 font-mono">
-                            {getFormattedPrice(5)}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setCustomGiftStoreItem({ id: "rose_regular", name: "Premium Red Rose", type: "rose", usdPrice: 5 });
-                            // Set first friend as default if empty
-                            if (friends.length > 0) {
-                              setGiftRecipientId(friends[0].id);
-                            } else {
-                              setGiftRecipientId("");
-                            }
-                            setGiftRecipientMessage("Roses are red, violets are blue, sending a celebratory flower to you! 🌹✨");
-                            setGiftPaymentMethod("momo");
-                          }}
-                          className="bg-indigo-600 hover:bg-rose-600 text-white font-black text-xs px-4 py-2.5 rounded-xl cursor-pointer transition-all active:scale-95 group-hover:shadow-md"
-                        >
-                          Send Rose
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Item 2: Elegant Bouquet */}
-                    <div className="bg-white border border-rose-100 hover:border-rose-300 shadow-xs p-6 rounded-[2rem] flex flex-col justify-between transition-all group hover:shadow-lg hover:-translate-y-1 relative overflow-hidden text-left">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-pink-50 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition-colors group-hover:bg-pink-100/50" />
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-start">
-                          <span className="text-3xl">💐</span>
-                          <span className="bg-pink-100 text-pink-700 text-[10px] font-black px-2.5 py-1 rounded-lg uppercase">
-                            Deluxe Floral
-                          </span>
-                        </div>
-                        <div>
-                          <h4 className="font-black text-base text-zinc-900 group-hover:text-pink-700 transition-colors">Vibrant Celebration Bouquet</h4>
-                          <p className="text-[11px] text-zinc-500 font-sans mt-1.5 leading-relaxed">
-                            A luxurious wrapped arrangement of tulips, crimson baby-breath, and orchids. Perfect as a gorgeous, high-class surprise statement.
-                          </p>
+                        <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between">
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block pb-0.5">Unit Cost</span>
+                            <span className="text-base font-black text-rose-600 font-mono">
+                              {getFormattedPrice(item.usdPrice)}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setCustomGiftStoreItem({ id: item.id, name: item.name, type: item.type, usdPrice: item.usdPrice });
+                              
+                              // Select default recipient
+                              if (friends.length > 0) {
+                                setGiftRecipientId(friends[0].id);
+                                
+                                // Default reveal date to friend's birthday (mapped to next year occurrence or today)
+                                const yr = new Date().getFullYear();
+                                const bdy = friends[0].birthday;
+                                if (bdy) {
+                                  const parts = bdy.split("-");
+                                  if (parts.length === 3) {
+                                    setGiftRevealDate(`${yr}-${parts[1]}-${parts[2]}`);
+                                  } else {
+                                    setGiftRevealDate(getTodayDateString());
+                                  }
+                                } else {
+                                  setGiftRevealDate(getTodayDateString());
+                                }
+                              } else {
+                                setGiftRecipientId("");
+                                setGiftRevealDate(getTodayDateString());
+                              }
+                              setGiftRecipientMessage(`Sending this lovely ${item.emoji} ${item.name} with warm celebration wishes! ✨🎁`);
+                              setGiftPaymentMethod("momo");
+                            }}
+                            className="bg-indigo-600 hover:bg-rose-600 text-white font-black text-xs px-4 py-2.5 rounded-xl cursor-pointer transition-all active:scale-95 group-hover:shadow-md"
+                          >
+                            Send {item.emoji}
+                          </button>
                         </div>
                       </div>
-
-                      <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between">
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-slate-405 block pb-0.5">Unit Cost</span>
-                          <span className="text-base font-black text-pink-600 font-mono">
-                            {getFormattedPrice(25)}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setCustomGiftStoreItem({ id: "bouquet_luxe", name: "Vibrant Celebration Bouquet", type: "bouquet", usdPrice: 25 });
-                            if (friends.length > 0) {
-                              setGiftRecipientId(friends[0].id);
-                            } else {
-                              setGiftRecipientId("");
-                            }
-                            setGiftRecipientMessage("Sending this gorgeous custom-wrapped bouquet to brighten your landmark week! Have the absolute best birthday! 💐🎂");
-                            setGiftPaymentMethod("momo");
-                          }}
-                          className="bg-indigo-600 hover:bg-pink-600 text-white font-black text-xs px-4 py-2.5 rounded-xl cursor-pointer transition-all active:scale-95 group-hover:shadow-md"
-                        >
-                          Send Bouquet
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Item 3: Money Sack */}
-                    <div className="bg-white border border-rose-100 hover:border-rose-300 shadow-xs p-6 rounded-[2rem] flex flex-col justify-between transition-all group hover:shadow-lg hover:-translate-y-1 relative overflow-hidden text-left">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition-colors group-hover:bg-emerald-100/50" />
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-start">
-                          <span className="text-3xl">💰</span>
-                          <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-2.5 py-1 rounded-lg uppercase">
-                            Prestige Cash
-                          </span>
-                        </div>
-                        <div>
-                          <h4 className="font-black text-base text-zinc-900 group-hover:text-emerald-700 transition-colors">Golden Cash Present Sacks</h4>
-                          <p className="text-[11px] text-zinc-500 font-sans mt-1.5 leading-relaxed">
-                            Send direct digital funds value into your buddy's registered wallet. The companion is instantly notified of dynamic deposit approval.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between">
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-slate-405 block pb-0.5">Transfer Value</span>
-                          <span className="text-base font-black text-emerald-600 font-mono">
-                            {getFormattedPrice(100)}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setCustomGiftStoreItem({ id: "money_sack", name: "Golden Cash Present Sacks", type: "money", usdPrice: 100 });
-                            if (friends.length > 0) {
-                              setGiftRecipientId(friends[0].id);
-                            } else {
-                              setGiftRecipientId("");
-                            }
-                            setGiftRecipientMessage("Please enjoy this golden digital cash present to help clear your wishlist desires! Secure shopping! 💸💳");
-                            setGiftPaymentMethod("momo");
-                          }}
-                          className="bg-indigo-600 hover:bg-emerald-600 text-white font-black text-xs px-4 py-2.5 rounded-xl cursor-pointer transition-all active:scale-95 group-hover:shadow-md"
-                        >
-                          Send Money
-                        </button>
-                      </div>
-                    </div>
+                    ))}
                   </div>
 
                   {/* Aesthetic Guarantee Alert Card */}
                   <div className="bg-indigo-50 border border-indigo-100 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center gap-4 text-left">
-                    <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-black animate-pulse">
+                    <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-black shrink-0 animate-pulse">
                       ℹ️
                     </div>
                     <div>
-                      <span className="text-xs font-black text-zinc-800 block">Workspace Delivery Guarantee</span>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Whenever you purchase a gift, the recipient buddy is immediately notified inside their local system dashboard. If you've activated active notification gateways (like WhatsApp or Snapchat swipe presets), simulated handshake messages are dispatched with perfect chimes and dynamic success banners!
+                      <span className="text-xs font-black text-zinc-800 block">Workspace Delivery &amp; Scheduler Guarantee</span>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Whenever you purchase a gift, you can configure a specific **scheduled reveal date**. The present will remain securely locked in localStorage/the platform registry until the chosen date. Once reached, is automatic-unlocked, sending instant chimes &amp; in-app dashboard signals!
                       </p>
                     </div>
                   </div>
@@ -6321,12 +6455,54 @@ export default function App() {
                 {/* Column 1: Pricing Tiers & Subscription (Span 7) */}
                 <div className="lg:col-span-7 bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 shadow-xs space-y-6">
                   <div>
-                    <h4 className="font-extrabold text-sm text-slate-900 uppercase tracking-wide flex items-center gap-2">
-                      👑 Subscription Plans Desk
-                    </h4>
-                    <p className="text-xs text-slate-500 font-sans">
-                      Select a tier suited to your tracking scale. Payments are fully simulated inside our Ghana GHS sandbox gateway.
-                    </p>
+                             </div>
+
+                  {/* Location & Billing Integrated Settings Selector */}
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    {/* Billing Cycle Toggle */}
+                    <div className="text-left w-full sm:w-auto">
+                      <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Billing Cycle</span>
+                      <div className="flex bg-slate-200/80 p-0.5 rounded-xl border border-slate-300 w-fit">
+                        <button
+                          type="button"
+                          onClick={() => setBillingCycle("monthly")}
+                          className={`px-3 py-1 text-[10px] font-extrabold rounded-lg transition-all cursor-pointer ${
+                            billingCycle === "monthly" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
+                          }`}
+                        >
+                          Monthly
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBillingCycle("annual")}
+                          className={`px-3 py-1 text-[10px] font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+                            billingCycle === "annual" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
+                          }`}
+                        >
+                          <span>Annual</span>
+                          <span className="bg-emerald-500 text-white text-[8px] font-black px-1.5 rounded-full scale-90">Saves 19%+</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Manual Location Selection */}
+                    <div className="w-full sm:w-auto text-left sm:text-right">
+                      <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Location Tier</span>
+                      <select
+                        value={userRegion}
+                        onChange={(e) => {
+                          const val = e.target.value as any;
+                          setUserRegion(val);
+                          triggerToast("Region Saved 🌍", `Prices adjusted automatically to match localization rules.`);
+                        }}
+                        className="bg-white border border-slate-300 rounded-xl px-2.5 py-1 text-[10px] font-extrabold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-150 shadow-xs cursor-pointer"
+                      >
+                        <option value="Ghana">🇬🇭 Ghana (GHS)</option>
+                        <option value="Other Africa">🌍 Other Africa (USD)</option>
+                        <option value="USA/Western">🗽 USA &amp; Western (USD)</option>
+                        <option value="Default">🌐 Global default (USD)</option>
+                      </select>
+                    </div>
                   </div>
 
                   {/* Grid of Plans */}
@@ -6338,10 +6514,12 @@ export default function App() {
                         <h5 className="font-extrabold text-sm text-slate-900">Free Tier</h5>
                         <p className="text-[10px] text-slate-500 mt-1">For basic tracking needs.</p>
                         <div className="my-3">
-                          <span className="text-xl font-black text-slate-900">GHS 0</span>
-                          <span className="text-[10px] text-slate-400">/mo</span>
+                          <span className="text-xl font-black text-slate-900">
+                            {userRegion === "Ghana" ? "GHS 0" : "$0"}
+                          </span>
+                          <span className="text-[10px] text-slate-400">/{billingCycle === "monthly" ? "mo" : "yr"}</span>
                         </div>
-                        <ul className="text-[10px] space-y-1.5 text-slate-650 font-semibold leading-tight">
+                        <ul className="text-[10px] space-y-1.5 text-slate-600 font-semibold leading-tight">
                           <li className="flex items-center gap-1"><span className="text-emerald-500 text-xs">✓</span> Max 5 friends</li>
                           <li className="flex items-center gap-1"><span className="text-emerald-500 text-xs">✓</span> In-app alerts</li>
                           <li className="flex items-center gap-1 text-slate-400"><span className="text-slate-300">✕</span> Email Reminders</li>
@@ -6367,11 +6545,23 @@ export default function App() {
                         {accountType === "Pro" && <span className="bg-indigo-600 text-white font-black tracking-widest text-[8px] uppercase px-2 py-0.5 rounded-full block w-fit mb-3">Active Now</span>}
                         <h5 className="font-extrabold text-sm text-slate-900">Pro VIP</h5>
                         <p className="text-[10px] text-slate-500 mt-1">For true gift organizers.</p>
-                        <div className="my-3">
-                          <span className="text-xl font-black text-slate-900">GHS 15</span>
-                          <span className="text-[10px] text-slate-400">/mo</span>
+                        <div className="my-3 relative">
+                          <span className="text-xl font-black text-slate-900">
+                            {userRegion === "Ghana" 
+                              ? (billingCycle === "monthly" ? "GHS 10" : "GHS 99")
+                              : userRegion === "USA/Western"
+                                ? (billingCycle === "monthly" ? "$3" : "$29")
+                                : (billingCycle === "monthly" ? "$1.50" : "$14")
+                            }
+                          </span>
+                          <span className="text-[10px] text-slate-400">/{billingCycle === "monthly" ? "mo" : "yr"}</span>
+                          {billingCycle === "annual" && (
+                            <span className="absolute -top-4 right-0 bg-emerald-100 text-emerald-800 text-[8px] font-bold px-1 py-0.2 rounded">
+                              {userRegion === "Ghana" ? "Save 17%" : userRegion === "USA/Western" ? "Save 19%" : "Save 22%"}
+                            </span>
+                          )}
                         </div>
-                        <ul className="text-[10px] space-y-1.5 text-slate-650 font-semibold leading-tight">
+                        <ul className="text-[10px] space-y-1.5 text-slate-600 font-semibold leading-tight">
                           <li className="flex items-center gap-1 text-indigo-950 font-bold"><span className="text-emerald-500 text-xs">✓</span> Unlimited friends</li>
                           <li className="flex items-center gap-1"><span className="text-emerald-500 text-xs">✓</span> 7d and 1d warnings</li>
                           <li className="flex items-center gap-1"><span className="text-emerald-500 text-xs">✓</span> 📧 Optional Email alerts</li>
@@ -6381,8 +6571,13 @@ export default function App() {
                       <button 
                         onClick={() => {
                           setAccountType("Pro");
-                          triggerToast("Upgraded to Pro VIP 👑", "Unlocked infinite buddy profiles, active 7d and 1d warning flags, and active email syncing.");
-                          appendLog("💳 Transaction: Member plan upgraded to Pro VIP (GHS 15.00/month). unlimited slots provisioned.");
+                          const activePrice = userRegion === "Ghana" 
+                            ? (billingCycle === "monthly" ? "GHS 10/mo" : "GHS 99/yr")
+                            : userRegion === "USA/Western"
+                              ? (billingCycle === "monthly" ? "$3/mo" : "$29/yr")
+                              : (billingCycle === "monthly" ? "$1.50/mo" : "$14/yr");
+                          triggerToast("Upgraded to Pro VIP 👑", `Unlocked infinite buddy profiles, alerts warnings and email syncing matching ${activePrice}.`);
+                          appendLog(`💳 Transaction: Member plan upgraded to Pro VIP (${activePrice}).`);
                         }}
                         className={`w-full py-1.8 mt-4 rounded-xl text-[10px] font-bold ${accountType === "Pro" ? "bg-indigo-600 text-white cursor-default" : "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 cursor-pointer"}`}
                       >
@@ -6396,11 +6591,18 @@ export default function App() {
                         {accountType === "Business" && <span className="bg-emerald-600 text-white font-black tracking-widest text-[8px] uppercase px-2 py-0.5 rounded-full block w-fit mb-3">Active Now</span>}
                         <h5 className="font-extrabold text-sm text-slate-900">Business Elite</h5>
                         <p className="text-[10px] text-slate-500 mt-1">For clubs &amp; retail circles.</p>
-                        <div className="my-3">
-                          <span className="text-xl font-black text-slate-900">GHS 200</span>
-                          <span className="text-[10px] text-slate-400">/mo</span>
+                        <div className="my-3 relative">
+                          <span className="text-xl font-black text-slate-900">
+                            {userRegion === "Ghana" 
+                              ? (billingCycle === "monthly" ? "GHS 200" : "GHS 1,999")
+                              : userRegion === "USA/Western"
+                                ? (billingCycle === "monthly" ? "$40" : "$399")
+                                : (billingCycle === "monthly" ? "$20" : "$199")
+                            }
+                          </span>
+                          <span className="text-[10px] text-slate-400">/{billingCycle === "monthly" ? "mo" : "yr"}</span>
                         </div>
-                        <ul className="text-[10px] space-y-1.5 text-slate-650 font-semibold leading-tight">
+                        <ul className="text-[10px] space-y-1.5 text-slate-600 font-semibold leading-tight">
                           <li className="flex items-center gap-1 text-emerald-950 font-bold"><span className="text-emerald-500 text-xs">✓</span> Unlimited friends</li>
                           <li className="flex items-center gap-1"><span className="text-emerald-500 text-xs">✓</span> Email &amp; Mass alerts</li>
                           <li className="flex items-center gap-1 text-emerald-900"><span className="text-emerald-500 text-xs">✓</span> 💼 Customers Bulk Import</li>
@@ -6410,8 +6612,13 @@ export default function App() {
                       <button 
                         onClick={() => {
                           setAccountType("Business");
-                          triggerToast("Upgraded to Business Elite 💼", "Bulk importer enabled. Mass customer lists loaded.");
-                          appendLog("💳 Transaction: Member plan changed to Business Elite (GHS 200.00/month). Bulk importers provisioned.");
+                          const activePrice = userRegion === "Ghana" 
+                            ? (billingCycle === "monthly" ? "GHS 200/mo" : "GHS 1,999/yr")
+                            : userRegion === "USA/Western"
+                              ? (billingCycle === "monthly" ? "$40/mo" : "$399/yr")
+                              : (billingCycle === "monthly" ? "$20/mo" : "$199/yr");
+                          triggerToast("Upgraded to Business Elite 💼", `Bulk importer activated, configured with ${activePrice}.`);
+                          appendLog(`💳 Transaction: Member plan changed to Business Elite (${activePrice}).`);
                         }}
                         className={`w-full py-1.8 mt-4 rounded-xl text-[10px] font-bold ${accountType === "Business" ? "bg-emerald-600 text-white cursor-default" : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 cursor-pointer"}`}
                       >
@@ -6656,11 +6863,10 @@ export default function App() {
 
         <button
           onClick={() => {
-            setActiveSection("ai-lab");
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            setIsAiLabOpen(true);
           }}
           className={`flex-1 flex flex-col items-center justify-center py-1.5 transition-all cursor-pointer ${
-            activeSection === "ai-lab" ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
+            isAiLabOpen ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
           }`}
           title="Smart AI Gift Lab"
         >
@@ -6670,11 +6876,12 @@ export default function App() {
 
         <button
           onClick={() => {
+            setProfileSubTab("profile");
             setActiveSection("profile");
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
           className={`flex-1 flex flex-col items-center justify-center py-1.5 transition-all cursor-pointer ${
-            activeSection === "profile" ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
+            activeSection === "profile" && profileSubTab !== "settings" ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
           }`}
           title="My Profile"
         >
@@ -6702,6 +6909,228 @@ export default function App() {
 
 
       </nav>
+
+      {/* Floating Spark AI Gift Suggestions Bubble (Bottom Right) */}
+      <div className="fixed bottom-20 md:bottom-6 right-6 z-[9990] animate-bounce">
+        <button
+          onClick={() => {
+            setIsAiLabOpen(true);
+            // Auto Select first buddy if none active
+            if (!selectedFriendId && friends.length > 0) {
+              setSelectedFriendId(friends[0].id);
+            }
+          }}
+          className="bg-indigo-600 hover:bg-indigo-700 hover:scale-105 active:scale-95 text-white p-4 rounded-full shadow-2xl flex items-center justify-center gap-2 cursor-pointer transition-all border border-indigo-500 duration-200"
+          title="Spark AI Gift Suggestions"
+        >
+          <Sparkles className="w-5 h-5 animate-pulse" />
+          <span className="text-xs font-black tracking-tight pr-1">Ask AI</span>
+        </button>
+      </div>
+
+      {/* SLIDE-UP AI GIFT RECS MODAL / DRAWER */}
+      <AnimatePresence>
+        {isAiLabOpen && (
+          <div className="fixed inset-0 z-[9995] flex items-center justify-center p-4">
+            {/* Backdrop with elegant blur */}
+            <div 
+              onClick={() => setIsAiLabOpen(false)}
+              className="absolute inset-0 bg-slate-900/45 backdrop-blur-xs transition-opacity"
+            />
+            
+            {/* Main Dialog Modal Container */}
+            <motion.div
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 180 }}
+              className="relative bg-white border border-slate-150 rounded-[2rem] shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 md:p-8 text-left z-10 flex flex-col space-y-6"
+              id="global-ai-lab-modal"
+            >
+              {/* Header */}
+              <div className="flex justify-between items-center border-b border-indigo-100/60 pb-4 bg-slate-50 -mx-6 -mt-6 p-6 md:-mx-8 md:-mt-8 md:p-8 rounded-t-[2rem]">
+                <div className="flex items-center gap-3">
+                  <span className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-md">
+                    <Sparkles className="w-5 h-5 animate-pulse" />
+                  </span>
+                  <div>
+                    <h3 className="font-extrabold text-sm md:text-base text-slate-900 leading-tight">Gemini Spark AI Ideas Labs</h3>
+                    <p className="text-[10px] md:text-xs text-slate-500">Curated, bespoke gift ideas matched precisely to buddy credentials</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsAiLabOpen(false)}
+                  className="p-1 px-2.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600 hover:text-slate-800 transition cursor-pointer text-xs font-bold"
+                >
+                  Close &times;
+                </button>
+              </div>
+
+              {/* Body Elements */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <div className="md:col-span-3">
+                  <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Companion Match</label>
+                  <select
+                    value={selectedFriendId}
+                    onChange={(e) => {
+                      setSelectedFriendId(e.target.value);
+                    }}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs focus:outline-none font-bold text-slate-800 cursor-pointer"
+                  >
+                    {friends.map(f => (
+                      <option key={f.id} value={f.id}>
+                        {f.name} (Turns {f.age})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Relation</label>
+                  <input
+                    type="text"
+                    value={aiRelationship}
+                    onChange={(e) => setAiRelationship(e.target.value)}
+                    className="w-full bg-white border border-slate-205 rounded-xl px-2.5 py-1.5 text-xs focus:outline-none font-semibold text-slate-800"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Age Bracket</label>
+                  <input
+                    type="text"
+                    value={aiAge}
+                    onChange={(e) => setAiAge(e.target.value)}
+                    className="w-full bg-white border border-slate-205 rounded-xl px-2.5 py-1.5 text-xs focus:outline-none font-semibold text-slate-800"
+                  />
+                </div>
+
+                <div className="md:col-span-3">
+                  <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Budget Threshold</label>
+                  <select
+                    value={aiBudget}
+                    onChange={(e) => setAiBudget(e.target.value)}
+                    className="w-full bg-white border border-slate-205 rounded-xl px-2.5 py-2 text-xs focus:outline-none font-semibold text-slate-800 cursor-pointer"
+                  >
+                    <option value="under $20">under $20 (Essential)</option>
+                    <option value="under $50">under $50 (Standard)</option>
+                    <option value="under $100">under $100 (Premium)</option>
+                    <option value="above $200">above $200 (Luxury Limit)</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <button
+                    onClick={handleGetGiftSuggestions}
+                    disabled={isLoadingAi}
+                    className="w-full py-2 bg-indigo-650 hover:bg-indigo-755 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border-none"
+                  >
+                    {isLoadingAi ? (
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Spark Recs</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Target Interests Pill previews */}
+              <div className="flex gap-2 items-center text-[11px] px-1">
+                <span className="font-bold text-slate-500">Buddy Interests tags:</span>
+                <div className="flex flex-wrap gap-1">
+                  {selectedFriend?.interests?.map((i, idx) => (
+                    <span key={idx} className="bg-indigo-100 text-indigo-755 text-[9px] font-bold px-2 py-0.5 rounded-md">
+                      #{i}
+                    </span>
+                  ))}
+                  {(!selectedFriend?.interests || selectedFriend.interests.length === 0) && (
+                    <span className="text-slate-400 italic">None bound. Tweak in Buddies Registry to feed AI.</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Recommendations Results Feed */}
+              <div className="space-y-4 pt-2 w-full">
+                {isLoadingAi ? (
+                  /* Pulsing card Skeleton loaders of content cards — strictly non-AI looking, clean progress indicator */
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 animate-pulse w-full">
+                    {[1, 2, 3].map(id => (
+                      <div key={id} className="bg-slate-50/80 border border-slate-200 p-5 rounded-2xl flex flex-col justify-between space-y-4 text-left">
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div className="h-4 bg-slate-200 rounded w-1/3" />
+                            <div className="h-4 bg-slate-200 rounded w-1/6" />
+                          </div>
+                          <div className="h-3.5 bg-slate-200 rounded w-4/5" />
+                          <div className="h-3 bg-slate-200 rounded w-full" />
+                          <div className="h-3 bg-slate-200 rounded w-5/6" />
+                        </div>
+                        <div className="h-1 bg-slate-100 w-full pt-1" />
+                        <div className="flex justify-between items-center pt-2">
+                          <div className="h-3 bg-slate-200 rounded w-1/4" />
+                          <div className="h-3 bg-slate-200 rounded w-1/3" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : aiSuggestions.length === 0 ? (
+                  <div className="py-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-250 w-full">
+                    <Gift className="w-10 h-10 text-slate-400 mx-auto stroke-1 mb-2" />
+                    <p className="font-bold text-slate-700 text-xs">Ready to initiate query builder</p>
+                    <p className="text-[10px] text-slate-505 text-slate-500 mt-1">Configure criteria tags and press "Spark Recs" for Gemini-analyzed matches.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full">
+                    {aiSuggestions.map((gift, idx) => (
+                      <div 
+                        key={idx}
+                        className="bg-white border border-slate-200 hover:border-slate-350 hover:shadow-sm p-4.5 rounded-2xl flex flex-col justify-between transition-all text-left"
+                      >
+                        <div className="space-y-2.5">
+                          <div className="flex justify-between items-start gap-1">
+                            <span className="bg-rose-50 border border-rose-100 text-rose-700 font-black text-[9px] px-2 py-0.5 rounded-md uppercase">
+                              {gift.category || "Gift Option"}
+                            </span>
+                            <span className="text-xs font-bold text-emerald-600 font-mono tracking-tight">{gift.estimatedPrice}</span>
+                          </div>
+                          
+                          <h5 className="font-bold text-xs text-slate-800 mb-0.5 flex items-center gap-1">
+                            🎁 {gift.name}
+                          </h5>
+                          
+                          <p className="text-[10.5px] text-slate-500 leading-normal font-normal">
+                            {gift.reason}
+                          </p>
+                        </div>
+                        
+                        <div className="mt-5 pt-3.5 border-t border-slate-100 flex justify-between items-center bg-slate-50 -mx-4.5 -mb-4.5 p-3.5 rounded-b-2xl">
+                          <span className="text-[9px] text-emerald-600 font-extrabold font-mono">98% Match Rating</span>
+                          <button 
+                            onClick={() => saveAiSuggestionToWishlist(gift)}
+                            className="text-[10.5px] text-indigo-600 font-bold hover:underline cursor-pointer bg-transparent border-none"
+                          >
+                            Save to Registry +
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {aiNote && !isLoadingAi && (
+                  <div className="flex items-center gap-2 mt-4 bg-slate-50 p-3 text-[10px] font-semibold rounded-xl text-slate-500 border border-slate-200 shadow-xs">
+                    <Info className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                    <span>{aiNote}</span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

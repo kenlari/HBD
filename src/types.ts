@@ -61,12 +61,13 @@ export interface SentGift {
   id: string;
   friendId: string;
   friendName: string;
-  giftType: "rose" | "bouquet" | "money";
+  giftType: string;
   giftName: string;
   price: string;
-  status: "Sent" | "Delivered";
+  status: "Sent" | "Delivered" | "Scheduled" | string;
   message: string;
   dateSent: string;
+  revealDate?: string;
 }
 
 
