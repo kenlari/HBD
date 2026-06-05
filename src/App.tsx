@@ -258,7 +258,7 @@ export default function App() {
 
   // Track the active interactive workspace section
   const [activeSection, setActiveSection] = useState<
-    "dashboard" | "registry" | "ai-lab" | "gift-store" | "my-wishlist" | "widgets" | "achievements" | "profile" | "settings" | "upgrade"
+    "dashboard" | "registry" | "ai-lab" | "ai-lab-legacy-hidden" | "gift-store" | "my-wishlist" | "widgets" | "achievements" | "profile" | "settings" | "upgrade"
   >("dashboard");
 
   // Important Configuration Settings
@@ -657,6 +657,7 @@ export default function App() {
 
   // --- CONNECT & IMPORT WORKSPACE STATES ---
   const [profileSubTab, setProfileSubTab] = useState<"settings" | "profile" | "wishlist" | "widgets" | "trophies">("settings");
+  const [isProfileSettingsOpen, setIsProfileSettingsOpen] = useState<boolean>(false);
   const [registrySubTab, setRegistrySubTab] = useState<"list" | "wishlist" | "widgets" | "trophies" | "connect">("list");
   const [connectMethod, setConnectMethod] = useState<"contacts" | "username">("contacts");
   const [usernameSearch, setUsernameSearch] = useState<string>("");
@@ -1428,7 +1429,7 @@ export default function App() {
               className="space-y-3.5 text-left"
             >
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Full Legal Name</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Full Name</label>
                 <input
                   type="text"
                   required
@@ -1604,7 +1605,7 @@ export default function App() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-[#F1F5F9] flex flex-col md:flex-row font-sans text-slate-800" id="bloom-app-root">
+    <div className="w-full min-h-screen bg-[#F1F5F9] flex flex-col lg:flex-row font-sans text-slate-800" id="bloom-app-root">
       
       {/* Toast Alert Prompt Overlay */}
       <AnimatePresence>
@@ -1631,7 +1632,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* WORKSPACE LEFT VERTICAL SIDEBAR NAVIGATION PANEL */}
-      <aside className="hidden md:flex w-72 bg-slate-900 text-slate-200 flex-col justify-between shrink-0 border-r border-slate-850 shadow-xl" id="sidebar-panel">
+      <aside className="hidden lg:flex w-72 bg-slate-900 text-slate-200 flex-col justify-between shrink-0 border-r border-slate-850 shadow-xl" id="sidebar-panel">
         <div>
           {/* Workspace Branding Header */}
           <div className="p-6 border-b border-slate-800" id="sidebar-title-cell">
@@ -1685,8 +1686,8 @@ export default function App() {
 
           {/* Navigation Links Group */}
           <nav className="p-4 space-y-1.5 text-left" id="sidebar-navigation">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 py-1.5 block">Menu Sections</p>
-            
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 py-1.5 block">Navigation</p>
+
             <button
               onClick={() => setActiveSection("dashboard")}
               className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${
@@ -1696,8 +1697,7 @@ export default function App() {
               }`}
             >
               <Home className="w-4 h-4" />
-              <span>Executive Home</span>
-              <span className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-400" />
+              <span>Home</span>
             </button>
 
             <button
@@ -1709,23 +1709,10 @@ export default function App() {
               }`}
             >
               <Users className="w-4 h-4" />
-              <span>Buddies Registry</span>
+              <span>Buddies</span>
               <span className="ml-auto bg-slate-800 text-[10px] px-2 py-0.5 rounded text-indigo-300 font-mono">
                 {friends.length}
               </span>
-            </button>
-
-            <button
-              onClick={() => setIsAiLabOpen(true)}
-              className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${
-                isAiLabOpen
-                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/30 font-extrabold"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-              }`}
-            >
-              <Wand2 className="w-4 h-4" />
-              <span>Smart AI Gift Lab</span>
-              <span className="ml-auto bg-emerald-500/15 text-emerald-400 font-mono text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Idea AI</span>
             </button>
 
             <button
@@ -1737,8 +1724,7 @@ export default function App() {
               }`}
             >
               <Gift className="w-4 h-4 text-rose-400 animate-pulse" />
-              <span>In-App Gift Store</span>
-              <span className="ml-auto bg-rose-600 text-[9px] px-1.5 py-0.5 rounded text-white font-mono font-bold">GIFTS</span>
+              <span>Gifts</span>
             </button>
 
             <button
@@ -1747,43 +1733,13 @@ export default function App() {
                 setActiveSection("profile");
               }}
               className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${
-                activeSection === "profile" && profileSubTab !== "settings"
+                activeSection === "profile"
                   ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/30 font-extrabold"
                   : "text-slate-400 hover:text-white hover:bg-slate-800/60"
               }`}
             >
               <User className="w-4 h-4 text-sky-400" />
-              <span>My Profile</span>
-              <span className="ml-auto bg-sky-500/10 text-sky-300 font-mono text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Me</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setProfileSubTab("settings");
-                setActiveSection("profile");
-              }}
-              className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${
-                activeSection === "profile" && profileSubTab === "settings"
-                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/30 font-extrabold"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-              }`}
-            >
-              <Settings className="w-4 h-4 text-indigo-400" />
-              <span>Workspace Settings</span>
-              <span className="ml-auto bg-indigo-500/10 text-indigo-300 font-mono text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Setup</span>
-            </button>
-
-            <button
-              onClick={() => setActiveSection("upgrade")}
-              className={`w-full px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-3 border ${
-                activeSection === "upgrade"
-                  ? "bg-amber-500 text-slate-950 border-amber-400 shadow-lg font-extrabold"
-                  : "text-amber-400 hover:text-white border-dashed border-amber-500/30 hover:bg-slate-800/60"
-              }`}
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>Premium Plan Tiers</span>
-              <span className="ml-auto bg-amber-500/10 text-amber-300 font-mono text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Upgrade</span>
+              <span>Profile</span>
             </button>
           </nav>
         </div>
@@ -1799,10 +1755,10 @@ export default function App() {
       </aside>
 
       {/* MAIN CONTAINER WORKSPACE */}
-      <main className="flex-1 flex flex-col min-w-0 pb-20 md:pb-0" id="main-canvas-wrapper">
+      <main className="flex-1 flex flex-col min-w-0 pb-20 lg:pb-0 lg:max-w-[1100px] lg:mx-auto" id="main-canvas-wrapper">
         
         {/* TOP STATUS BAR ROW */}
-        <header className="bg-white border-b border-slate-200 px-6 md:px-8 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 z-10 text-left relative" id="main-workspace-header">
+<header className="bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-4 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 z-10 text-left relative" id="main-workspace-header">
           
           {/* Mobile-only Branding Bar at top */}
           <div className="md:hidden flex w-full justify-between items-center pb-2.5 border-b border-slate-100 mb-0.5" id="mobile-workspace-brand">
@@ -1814,32 +1770,21 @@ export default function App() {
                 BloomBirth <span className="text-[8px] bg-indigo-100 text-indigo-600 px-1 py-0.2 rounded font-mono uppercase font-black">Pro</span>
               </h1>
             </div>
-            {/* Mobile/Compact Settings Button */}
-            <button
-              onClick={() => {
-                setActiveSection("settings");
-              }}
-              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 p-1.5 px-3 rounded-xl border border-slate-200 transition-all cursor-pointer shadow-xs shrink-0"
-              title="Access Workspace Settings"
-            >
-              <Settings className="w-3.5 h-3.5 text-indigo-650 animate-spin" style={{ animationDuration: "12s" }} />
-              <span className="text-[10px] font-extrabold text-slate-800">Settings</span>
-            </button>
           </div>
 
           <div className="flex w-full md:w-auto items-center justify-between md:justify-start gap-4">
             <div>
-              <span className="text-[9px] md:text-[10px] text-slate-400 uppercase tracking-widest font-black block">Active Workspace Desk</span>
+              <span className="text-[9px] md:text-[10px] text-slate-400 uppercase tracking-widest font-black block">Your Space</span>
               <h2 className="text-lg md:text-xl font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
-                {activeSection === "dashboard" && "Executive Command Center"}
-                {activeSection === "registry" && "Buddies Registry Console"}
-                {activeSection === "ai-lab" && "Smart Spark AI Gift Lab"}
-                {activeSection === "my-wishlist" && "Alex Patel's Desire Hub"}
-                {activeSection === "widgets" && "iOS & Android Widget Studio"}
-                {activeSection === "achievements" && "Milestones Awards & Activity Ledger"}
-                {activeSection === "profile" && "My Account & Identity"}
-                {activeSection === "settings" && "Workspace Settings & Preferences"}
-                {activeSection === "upgrade" && "Premium Plan Tiers"}
+                {activeSection === "dashboard" && "Home"}
+                {activeSection === "registry" && "Buddies"}
+                {activeSection === "ai-lab" && "Gift Ideas"}
+                {activeSection === "my-wishlist" && "My Wishlist"}
+                {activeSection === "widgets" && "Widgets"}
+                {activeSection === "achievements" && "Achievements"}
+                {activeSection === "profile" && "Profile"}
+                {activeSection === "settings" && "Settings"}
+                {activeSection === "upgrade" && "Plans"}
               </h2>
             </div>
           </div>
@@ -1848,7 +1793,7 @@ export default function App() {
           <div className="flex flex-wrap md:flex-nowrap items-center gap-3 w-full md:w-auto">
             <div className="hidden sm:flex bg-[#FAF9FF] border border-slate-200 px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 shadow-xs items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse" />
-              <span>Next occurrence: {nextTarget.name} ({nextTargetDays} days left)</span>
+              <span>Next Birthday: {nextTarget.name} ({nextTargetDays} days left)</span>
             </div>
 
             {/* Real-time Notification Bell Widget */}
@@ -1866,22 +1811,6 @@ export default function App() {
               )}
             </button>
 
-            {/* Desktop persistent settings button */}
-            <button
-               onClick={() => {
-                 setActiveSection("settings");
-               }}
-               className="hidden md:flex items-center gap-2.5 bg-slate-50 hover:bg-indigo-50/50 p-1.5 pr-3 rounded-xl border border-slate-200 transition-all cursor-pointer shrink-0"
-               title="Workspace Settings & Preferences"
-            >
-               <div className="w-7 h-7 bg-indigo-100 text-indigo-700 rounded-lg flex items-center justify-center shrink-0">
-                 <Settings className="w-4 h-4 text-indigo-600 animate-spin-slow" style={{ animationDuration: "12s" }} />
-               </div>
-               <div className="text-left font-sans">
-                 <span className="text-[11px] font-black text-slate-850 block leading-tight">Settings</span>
-                 <span className="text-[8.5px] text-indigo-600 font-bold block mt-0.5 uppercase tracking-wider">Preferences</span>
-               </div>
-            </button>
 
             {/* QR Scanner Direct Header Trigger */}
             <button
@@ -2056,7 +1985,7 @@ export default function App() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-sans">Snapchat Username</label>
+                      <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1 font-sans">Username</label>
                       <input
                         type="text"
                         placeholder="e.g. friend_snap"
@@ -2802,12 +2731,12 @@ export default function App() {
                                 <button
                                   onClick={() => {
                                     navigator.clipboard.writeText(`Happy Birthday, ${friend.name}! 🎉 Wishing you the best year ahead! Check out your wishlist on BloomBirth.`);
-                                    triggerToast("Snapchat Clipboard Copied! 👻", `Copied Snapchat handle: @${snapHandle} to your clipboard!`);
-                                    appendLog(`👻 Opened Snapchat Deep link for friend: @${snapHandle}`);
+                                    triggerToast("Username copied! 👻", `Copied username: @${snapHandle} to your clipboard!`);
+                                    appendLog(`👻 Opened username link for friend: @${snapHandle}`);
                                     window.open(`https://snapchat.com/add/${snapHandle}`, "_blank");
                                   }}
                                   className="px-3 py-1.5 bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-xl text-[11px] font-black flex items-center gap-1.5 shadow-md shadow-amber-100 transition-all cursor-pointer active:scale-95"
-                                  title={`Send Snapchat handle greeting to @${snapHandle}`}
+                                  title={`Send username greeting to @${snapHandle}`}
                                 >
                                   <span className="text-xs">👻</span>
                                   <span>Snapchat</span>
@@ -3481,10 +3410,10 @@ export default function App() {
                     <div className="bg-gradient-to-br from-indigo-50/20 to-slate-50 border border-slate-200 rounded-[1.5rem] p-4 text-xs space-y-1.5 text-left text-slate-600 shadow-3xs">
                       <div className="flex items-center gap-1.5 font-black text-slate-800">
                         <span>🛡️</span>
-                        <span>Bidirectional Privacy Rule</span>
+                        <span>Privacy</span>
                       </div>
                       <p className="text-[11px] leading-relaxed text-slate-500">
-                        Wishlists and tags are only readable once a contact mirrors your username connection. Locked entries display a 🔒 badge until mutually approved.
+                        Wishlists and tags are only readable once a contact connects with your username. Locked entries show a 🔒 badge until both sides accept.
                       </p>
                     </div>
 
@@ -3849,9 +3778,9 @@ export default function App() {
                       <div>
                         <h3 className="text-2xl font-black text-slate-900 tracking-tight">{selectedFriend.name}</h3>
                         <p className="text-xs text-slate-500 font-semibold">
-                          Relationship Role: <span className="text-zinc-800 font-bold">{selectedFriend.relationship}</span> • Turning <span className="text-zinc-800 font-bold">{selectedFriend.age}</span>
+                          Relationship: <span className="text-zinc-800 font-bold">{selectedFriend.relationship}</span>
                         </p>
-                        <p className="text-xs text-slate-400 mt-0.5">Birthday Calendar Target: <span className="text-indigo-600 font-bold">{formatBirthdayDate(selectedFriend.birthday)} ({selectedFriend.birthday})</span></p>
+                        <p className="text-xs text-slate-400 mt-0.5">Birthday: <span className="text-indigo-600 font-bold">{formatBirthdayDate(selectedFriend.birthday)} ({selectedFriend.birthday})</span></p>
 
                         {/* Elegant coordinates tray */}
                         <div className="flex flex-wrap items-center gap-1.5 mt-2.5 text-left">
@@ -3864,11 +3793,6 @@ export default function App() {
                             <MessageSquare className="w-3 h-3 text-emerald-500" />
                             <span className="text-slate-400 font-medium">WhatsApp:</span>
                             <span className="font-mono text-slate-800">{selectedFriend.whatsapp || "+233241234567"}</span>
-                          </div>
-                          <div className="bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-lg px-2 py-1 flex items-center gap-1 text-[10.5px] font-semibold text-slate-700">
-                            <Mail className="w-3 h-3 text-rose-500" />
-                            <span className="text-slate-400 font-medium">Email:</span>
-                            <span className="font-mono text-slate-800">{selectedFriend.email || "friend@example.com"}</span>
                           </div>
                           <div className="bg-amber-50/50 hover:bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 flex items-center gap-1 text-[10.5px] font-semibold">
                             <span className="text-amber-600 font-bold">Snapchat:</span>
@@ -4007,7 +3931,7 @@ export default function App() {
                           />
                         </div>
                         <div>
-                          <label className="block text-[9px] font-semibold text-slate-500 uppercase mb-0.5">Edit Snapchat Username</label>
+                          <label className="block text-[9px] font-semibold text-slate-500 uppercase mb-0.5">Edit Username</label>
                           <input 
                             type="text" 
                             value={editFriendSnapchat} 
@@ -4050,32 +3974,23 @@ export default function App() {
                         </div>
                         
                         <div className="space-y-1.5">
-                          <h4 className="text-base font-black text-slate-900">Mutual Connection Required</h4>
+                          <h4 className="text-base font-black text-slate-900">Add Friend</h4>
                           <p className="text-xs text-slate-500 leading-relaxed">
-                            For privacy and security, you must connect with <span className="font-extrabold text-slate-800">{selectedFriend.name}</span> and they must also connect back before you are permitted to view their circle interests, tags, or claim items on their secret wishlist folders.
+                            Tap below to add <span className="font-extrabold text-slate-800">{selectedFriend.name}</span> to your friends list. After adding them, you can view their tags and wishlist items.
                           </p>
                         </div>
 
-                        <div className="bg-white rounded-2xl p-4 border border-indigo-100 text-left text-xs text-slate-500 space-y-2">
-                          <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <span>Reciprocal Confirmation Simulator:</span>
-                          </div>
-                          <p className="text-[10.5px] leading-relaxed">
-                            In HBD production, companions download the PWA and sync mutually. For testing our UI, click below to instantly trigger reciprocal handshake approval!
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setFriends(prev => prev.map(f => f.id === selectedFriend.id ? { ...f, connectedBack: true } : f));
-                              triggerToast("Mutual Handshake Synced! 🤝", `Simulated: ${selectedFriend.name} accepted your connection.`);
-                              appendLog(`🤝 Handshake Approved: Reciprocal approval received from ${selectedFriend.name}.`);
-                            }}
-                            className="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs py-2 px-4 rounded-xl transition cursor-pointer shadow flex items-center justify-center gap-1.5"
-                          >
-                            <span>Accept mutual handshake as {selectedFriend.name.split(" ")[0]} 🤝</span>
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFriends(prev => prev.map(f => f.id === selectedFriend.id ? { ...f, connectedBack: true } : f));
+                            triggerToast("Friend added! 🤝", `${selectedFriend.name} is now in your friends list.`);
+                            appendLog(`🤝 Added friend: ${selectedFriend.name}`);
+                          }}
+                          className="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs py-2 px-4 rounded-xl transition cursor-pointer shadow flex items-center justify-center gap-1.5"
+                        >
+                          <span>Add Friend</span>
+                        </button>
                       </div>
                     </div>
                   ) : (
@@ -4841,101 +4756,40 @@ export default function App() {
           {/* Screens 4, 5, and 6 are beautifully integrated and consolidated as interactive subsections inside the redone unified My Profile tab view */}
 
           {/* ==================== SCREEN 7: MY PROFILE & WORKSPACE SETTINGS ==================== */}
-          {(activeSection === "profile" || activeSection === "settings" || activeSection === "signin") && (
+          {activeSection === "profile" && (
             <div className="space-y-6 text-left" id="view-signin-custom-hull">
               
               {/* Introduction Banner */}
               <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-6 rounded-3xl text-left text-white shadow-xl relative overflow-hidden">
                 <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-indigo-500/10 to-transparent pointer-events-none" />
+                <button
+                  type="button"
+                  onClick={() => setIsProfileSettingsOpen(true)}
+                  className="absolute right-4 top-4 inline-flex items-center justify-center h-10 w-10 rounded-2xl bg-white/10 text-white hover:bg-white/20 border border-white/20 transition"
+                  title="Open profile settings"
+                >
+                  <Settings className="w-5 h-5" />
+                </button>
                 <h3 className="text-xl md:text-2xl font-black text-white flex items-center gap-2">
-                  <Settings className="w-5 h-5 text-indigo-400 animate-spin-slow" style={{ animationDuration: "12s" }} />
-                  <span>Workspace Settings &amp; Personal Preferences</span>
+                  <User className="w-5 h-5 text-indigo-400" />
+                  <span>My Profile</span>
                 </h3>
                 <p className="text-xs text-indigo-200 mt-1.5 leading-relaxed max-w-2xl font-sans">
-                  Configure alert frequencies, customize in-app parameters, manage global currency symbols, sync profiles via QR Handshakes, and access companion wishlists.
+                  A single page for your account info, wishlist items, widget preview, and trophies.
                 </p>
               </div>
 
-              {/* Sub-Tabs Control Switcher */}
-              <div className="flex flex-wrap bg-slate-100 p-1.5 rounded-2xl w-full border border-slate-200 shadow-sm max-w-2xl gap-1" id="profile-tabs-wrapper">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setProfileSubTab("settings");
-                    setActiveSection("settings");
-                  }}
-                  className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 min-w-[120px] ${
-                    profileSubTab === "settings"
-                      ? "bg-white text-slate-800 shadow-sm font-black"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  <Sliders className="w-3.5 h-3.5 text-indigo-550" />
-                  <span>Alert Preferences</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setProfileSubTab("profile");
-                    setActiveSection("profile");
-                  }}
-                  className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 min-w-[120px] ${
-                    profileSubTab === "profile"
-                      ? "bg-white text-slate-800 shadow-sm font-black"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  <User className="w-3.5 h-3.5 text-blue-500" />
-                  <span>My Account</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setProfileSubTab("wishlist");
-                    setActiveSection("profile");
-                  }}
-                  className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 min-w-[120px] ${
-                    profileSubTab === "wishlist"
-                      ? "bg-white text-slate-800 shadow-sm font-black"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  <Gift className="w-3.5 h-3.5 text-rose-500" />
-                  <span>My Wishlist</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setProfileSubTab("widgets");
-                    setActiveSection("profile");
-                  }}
-                  className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 min-w-[120px] ${
-                    profileSubTab === "widgets"
-                      ? "bg-white text-slate-800 shadow-sm font-black"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  <Smartphone className="w-3.5 h-3.5 text-cyan-500" />
-                  <span>Widgets</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setProfileSubTab("trophies");
-                    setActiveSection("profile");
-                  }}
-                  className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 min-w-[120px] ${
-                    profileSubTab === "trophies"
-                      ? "bg-white text-slate-800 shadow-sm font-black"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  <Award className="w-3.5 h-3.5 text-amber-550" />
-                  <span>Trophies</span>
-                </button>
+              <div className="space-y-2">
+                <div className="text-left">
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Profile Overview</span>
+                  <h4 className="text-lg md:text-xl font-black text-slate-900 mt-2">Everything about you, in one scrollable place</h4>
+                  <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+                    Your account details, wishlist items, widget preview, and trophy history are now stacked cleanly without nested tabs.
+                  </p>
+                </div>
               </div>
 
-              {profileSubTab === "settings" && (
+              {false && (
                 <>
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch animate-fade-in" id="profile-subtab-settings-deck">
                   {/* Left preferences pane */}
@@ -5030,7 +4884,7 @@ export default function App() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Global Currency Display</label>
+                            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Currency</label>
                             <select 
                               value={globalCurrency}
                               onChange={(e) => {
@@ -5058,7 +4912,7 @@ export default function App() {
                               />
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-slate-700">Aesthetic Celebration Confetti</span>
+                              <span className="text-xs font-bold text-slate-700">Fun Confetti</span>
                               <input 
                                 type="checkbox"
                                 checked={confettiOnBirthdays}
@@ -5135,7 +4989,7 @@ export default function App() {
                         <div className="border-t border-slate-150 pt-4 space-y-3">
                           <div className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 text-left">
                             <div className="text-left">
-                              <span className="text-xs font-extrabold text-slate-800 block">Confidential Age Mode</span>
+                              <span className="text-xs font-extrabold text-slate-800 block">Hide Age</span>
                               <p className="text-[10px] text-slate-500 mt-0.5">Hide your actual age value inside searchable widgets and digital passes.</p>
                             </div>
                             <input 
@@ -5148,7 +5002,7 @@ export default function App() {
 
                           <div className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 text-left">
                             <div className="text-left">
-                              <span className="text-xs font-extrabold text-slate-800 block">Auto-Mirror QR Connections</span>
+                              <span className="text-xs font-extrabold text-slate-800 block">Auto Friend Sync</span>
                               <p className="text-[10px] text-slate-500 mt-0.5">Automatically toggle "Mutual Hands" back when people scan your digital pass.</p>
                             </div>
                             <input 
@@ -5163,7 +5017,7 @@ export default function App() {
 
                       {/* Active Connection & Workspace Status Panel */}
                       <div className="bg-slate-50 rounded-2xl p-4 border border-slate-150 space-y-3 text-left">
-                        <span className="text-[9px] uppercase tracking-wider font-extrabold text-indigo-600 block">Workspace Metrics</span>
+                        <span className="text-[9px] uppercase tracking-wider font-extrabold text-indigo-600 block">Stats</span>
                         <div className="space-y-2">
                           <div className="flex justify-between text-xs">
                             <span className="text-slate-500">Companions Registered:</span>
@@ -5177,7 +5031,7 @@ export default function App() {
                             <span className="text-slate-500">Direct Message State:</span>
                             <span className="font-extrabold text-emerald-600 flex items-center gap-1">
                               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
-                              <span>Live Handshake Ready</span>
+                              <span>Ready to Connect</span>
                             </span>
                           </div>
                         </div>
@@ -5189,7 +5043,7 @@ export default function App() {
                               if (soundEffectsEnabled) {
                                 try { new Audio("https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav").play(); } catch(e){}
                               }
-                              triggerToast("Instant Ping Delivered 🔔", "Aesthetic sound effect chime and alert diagnostics generated successfully!");
+                              triggerToast("Ping sent 🔔", "A fun notification sound just played.");
                             }}
                             className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-black rounded-lg transition-colors cursor-pointer text-center"
                           >
@@ -5200,7 +5054,7 @@ export default function App() {
                     </div>
 
                     <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 p-4 rounded-2xl text-left text-white space-y-1.5 relative overflow-hidden border border-indigo-900">
-                      <span className="text-[8px] uppercase tracking-widest font-black text-indigo-400 block font-mono">Security Seal</span>
+                      <span className="text-[8px] uppercase tracking-widest font-black text-indigo-400 block font-mono">Privacy</span>
                       <p className="text-xs font-black text-white leading-tight">Private Local Sandbox Active</p>
                       <p className="text-[10px] text-indigo-200 leading-normal">
                         All configuration keys, settings, and companion birthdays are stored locally. No sensitive account tokens exit your viewport browser canvas.
@@ -5215,7 +5069,7 @@ export default function App() {
                     <div className="space-y-1">
                       <h4 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
                         <Sparkles className="w-5 h-5 text-indigo-650 animate-pulse" />
-                        <span>Smart Workspace Tuning Desk</span>
+                        <span>Help & Tips</span>
                       </h4>
                       <p className="text-xs text-slate-500">
                         Dynamic workspace attributes analyzed in real-time. Optimize alerts, privacy boundaries, and media delivery.
@@ -5375,7 +5229,7 @@ export default function App() {
               </>
               )}
 
-              {profileSubTab === "profile" && (
+              {activeSection === "profile" && (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
                 
                 {/* COLUMN 1: Active user session configuration form (Span 6) */}
@@ -5384,10 +5238,10 @@ export default function App() {
                     <div>
                       <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
                         <Sliders className="w-4.5 h-4.5 text-indigo-600" />
-                        <span>Update Identity Coordinates</span>
+                        <span>Edit Profile</span>
                       </h4>
-                      <p className="text-[11px] text-zinc-500 mt-0.5">
-                        These parameters control your self-registry record and calendar presence.
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Keep your name, username, birthday, and contact info up to date.
                       </p>
                     </div>
 
@@ -5395,7 +5249,7 @@ export default function App() {
                       onSubmit={(e) => {
                         e.preventDefault();
                         if (!signInName.trim() || !signInUsername.trim() || !signInEmail.trim() || !signInPhone.trim() || !signInWhatsApp.trim()) {
-                          triggerToast("Missing Fields ⚠️", "Provide full legal name, Snapchat handle, phone number, WhatsApp, and email.");
+                          triggerToast("Missing Fields ⚠️", "Please fill in your full name, username, phone, WhatsApp, and email.");
                           return;
                         }
                         const sessionObj = {
@@ -5416,7 +5270,7 @@ export default function App() {
                       className="space-y-3.5 text-left"
                     >
                       <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Full Legal Name</label>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Full Name</label>
                         <input
                           type="text"
                           required
@@ -5429,7 +5283,7 @@ export default function App() {
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 font-sans">Snapchat Handle</label>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 font-sans">Username</label>
                           <input
                             type="text"
                             required
@@ -5730,7 +5584,7 @@ export default function App() {
             )}
 
               {/* ==================== SUB-TAB 2: MY PUBLIC WISHLIST ==================== */}
-              {profileSubTab === "wishlist" && (
+              {activeSection === "profile" && (
                 <div className="space-y-6 animate-fade-in" id="profile-subtab-wishlist">
                   {/* User profile details ribbon */}
                   <div className="bg-white rounded-[2rem] border border-slate-200 p-6 md:p-8 flex flex-col md:flex-row justify-between items-stretch gap-6 shadow-xs text-left" id="my-profile-banner">
@@ -5842,7 +5696,7 @@ export default function App() {
               )}
 
               {/* ==================== SUB-TAB 3: WIDGET SIMULATOR ==================== */}
-              {profileSubTab === "widgets" && (
+              {activeSection === "profile" && (
                 <div className="space-y-6 animate-fade-in" id="profile-subtab-widgets">
                   <div className="bg-white p-6 rounded-3xl border border-slate-200 text-left header-explain-widgets">
                     <h3 className="font-black text-lg text-slate-900">Interactive Device Complication Simulator</h3>
@@ -5858,7 +5712,7 @@ export default function App() {
               )}
 
               {/* ==================== SUB-TAB 4: TROPHIES & LOGS ==================== */}
-              {profileSubTab === "trophies" && (
+              {activeSection === "profile" && (
                 <div className="space-y-6 text-left animate-fade-in" id="profile-subtab-trophies">
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
                     <div className="md:col-span-8 bg-white rounded-3xl border border-slate-200 p-6 flex flex-col justify-between">
@@ -5975,6 +5829,137 @@ export default function App() {
                 </div>
               )}
 
+              </div>
+            )}
+
+            {isProfileSettingsOpen && (
+              <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-4 md:p-6" onClick={() => setIsProfileSettingsOpen(false)}>
+                <div className="w-full max-w-3xl rounded-t-3xl bg-white shadow-2xl overflow-hidden border border-slate-200" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+                    <div>
+                      <h3 className="text-base font-black text-slate-900">Profile Settings</h3>
+                      <p className="text-xs text-slate-500 mt-1">Edit your name, username, phone, notification toggles, region pricing, or sign out.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsProfileSettingsOpen(false)}
+                      className="text-slate-500 hover:text-slate-900 rounded-full transition"
+                      aria-label="Close settings"
+                    >
+                      <span className="text-lg">×</span>
+                    </button>
+                  </div>
+
+                  <div className="p-5 space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Full name</label>
+                        <input
+                          value={signInName}
+                          onChange={(e) => setSignInName(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
+                          placeholder="Alex Patel"
+                          type="text"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Username</label>
+                        <input
+                          value={signInUsername}
+                          onChange={(e) => setSignInUsername(e.target.value.replace(/^@/, ""))}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 font-mono"
+                          placeholder="alex_snap"
+                          type="text"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Phone</label>
+                        <input
+                          value={signInPhone}
+                          onChange={(e) => setSignInPhone(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 font-mono"
+                          placeholder="+233241234567"
+                          type="tel"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-slate-50 border border-slate-200 rounded-3xl p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black uppercase tracking-wider text-slate-500">WhatsApp alerts</span>
+                          <input
+                            type="checkbox"
+                            checked={notifyWhatsApp}
+                            onChange={(e) => setNotifyWhatsApp(e.target.checked)}
+                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black uppercase tracking-wider text-slate-500">Snapchat reminders</span>
+                          <input
+                            type="checkbox"
+                            checked={notifySnapchat}
+                            onChange={(e) => setNotifySnapchat(e.target.checked)}
+                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-50 border border-slate-200 rounded-3xl p-4 space-y-3">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Region</label>
+                          <select
+                            value={userRegion}
+                            onChange={(e) => setUserRegion(e.target.value as any)}
+                            className="w-full bg-white border border-slate-200 rounded-2xl px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
+                          >
+                            <option value="Ghana">Ghana</option>
+                            <option value="Other Africa">Other Africa</option>
+                            <option value="USA/Western">USA / Western</option>
+                            <option value="Default">Default</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Currency</label>
+                          <select
+                            value={globalCurrency}
+                            onChange={(e) => setGlobalCurrency(e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded-2xl px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500"
+                          >
+                            <option value="GHS">GHS</option>
+                            <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
+                            <option value="GBP">GBP</option>
+                            <option value="CAD">CAD</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-slate-200 pt-4 space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          localStorage.removeItem("birthday_authenticated_user");
+                          setUserSession(null);
+                          setIsProfileSettingsOpen(false);
+                          triggerToast("Logged Out", "Your profile session has been signed out.");
+                        }}
+                        className="w-full bg-rose-600 hover:bg-rose-700 text-white py-3 rounded-2xl font-black text-sm transition"
+                      >
+                        Log Out
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsProfileSettingsOpen(false)}
+                        className="w-full bg-slate-100 hover:bg-slate-200 text-slate-900 py-3 rounded-2xl font-black text-sm transition"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -6442,7 +6427,7 @@ export default function App() {
                 <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-indigo-500/10 pointer-events-none blur-3xl opacity-30" />
                 <h3 className="text-xl md:text-2xl font-black text-white flex items-center gap-2">
                   <Sparkles className="w-6 h-6 text-indigo-400" />
-                  <span>Premium Plan Tiers &amp; System Configuration</span>
+                  <span>Plans</span>
                 </h3>
                 <p className="text-xs text-indigo-200 mt-1.5 leading-relaxed max-w-xl font-sans">
                   Manage your subscription level, toggle email reminders settings, customize handles, or bulk-import members for corporate campaigns.
@@ -6634,7 +6619,7 @@ export default function App() {
                       <span>💼 Business Customer/Member Bulk Importer</span>
                     </span>
                     <p className="text-[11px] text-slate-500 leading-normal font-sans">
-                      Copy and paste customer/member birthday rosters to register lists in bulk. Paste one record per line as: <code className="bg-slate-200 px-1 py-0.5 rounded text-indigo-700 text-[10px] font-mono">Full Name, Birthday (YYYY-MM-DD), WhatsApp Phone, Snapchat Username, Category</code>
+                      Copy and paste customer/member birthday rosters to register lists in bulk. Paste one record per line as: <code className="bg-slate-200 px-1 py-0.5 rounded text-indigo-700 text-[10px] font-mono">Full Name, Birthday (YYYY-MM-DD), WhatsApp Phone, Username, Category</code>
                     </p>
 
                     {accountType !== "Business" ? (
@@ -6743,7 +6728,7 @@ export default function App() {
                   {/* Form fields for settings */}
                   <div className="space-y-4 font-sans">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">My Snapchat Username</label>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">My Username</label>
                       <input 
                         type="text" 
                         value={snapchatUsername}
@@ -6755,7 +6740,7 @@ export default function App() {
                             setUserSession(nextSess);
                             localStorage.setItem("birthday_authenticated_user", JSON.stringify(nextSess));
                           }
-                          triggerToast("Settings Update", "Custom snapchat handle updated.");
+                          triggerToast("Settings Update", "Custom username updated.");
                         }}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-100 focus:outline-[#818CF8] font-mono text-zinc-850"
                         placeholder="alex_snap"
@@ -6829,7 +6814,7 @@ export default function App() {
       </main>
 
       {/* MOBILE STICKY BOTTOM NAVIGATION BAR */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900 border-t border-slate-800 flex justify-around items-center px-1 z-40 shadow-2xl pb-2.5 pt-1" id="mobile-bottom-navigation">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900 border-t border-slate-800 flex justify-around items-center px-1 z-40 shadow-2xl pb-2.5 pt-1" id="mobile-bottom-navigation">
         <button
           onClick={() => {
             setActiveSection("dashboard");
@@ -6838,7 +6823,7 @@ export default function App() {
           className={`flex-1 flex flex-col items-center justify-center py-1.5 transition-all cursor-pointer ${
             activeSection === "dashboard" ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
           }`}
-          title="Executive Home"
+          title="Home"
         >
           <Home className="w-4.5 h-4.5 mb-0.5" />
           <span className="text-[9px] font-bold tracking-tight">Home</span>
@@ -6863,15 +6848,16 @@ export default function App() {
 
         <button
           onClick={() => {
-            setIsAiLabOpen(true);
+            setActiveSection("gift-store");
+            window.scrollTo({ top: 0, behavior: "smooth" });
           }}
           className={`flex-1 flex flex-col items-center justify-center py-1.5 transition-all cursor-pointer ${
-            isAiLabOpen ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
+            activeSection === "gift-store" ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
           }`}
-          title="Smart AI Gift Lab"
+          title="Gifts"
         >
-          <Wand2 className="w-4.5 h-4.5 mb-0.5" />
-          <span className="text-[9px] font-bold tracking-tight">Gift AI</span>
+          <Gift className="w-4.5 h-4.5 mb-0.5" />
+          <span className="text-[9px] font-bold tracking-tight">Gifts</span>
         </button>
 
         <button
@@ -6883,7 +6869,7 @@ export default function App() {
           className={`flex-1 flex flex-col items-center justify-center py-1.5 transition-all cursor-pointer ${
             activeSection === "profile" && profileSubTab !== "settings" ? "text-indigo-400 font-black scale-105" : "text-slate-400 hover:text-slate-200"
           }`}
-          title="My Profile"
+          title="Profile"
         >
           <User className="w-4.5 h-4.5 mb-0.5" />
           <span className="text-[9px] font-bold tracking-tight">Profile</span>
@@ -6891,21 +6877,6 @@ export default function App() {
 
 
 
-
-
-        <button
-          onClick={() => {
-            setActiveSection("upgrade");
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-          className={`flex-1 flex flex-col items-center justify-center py-1.5 transition-all cursor-pointer ${
-            activeSection === "upgrade" ? "text-amber-400 font-black scale-105" : "text-amber-500/70 hover:text-amber-300"
-          }`}
-          title="Premium Plan Tiers"
-        >
-          <Sparkles className="w-4.5 h-4.5 mb-0.5" />
-          <span className="text-[9px] font-bold tracking-tight">Premium</span>
-        </button>
 
 
       </nav>
