@@ -2401,29 +2401,6 @@ export default function App() {
               />
 
               {/* Top Greeting Message */}
-              <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-6 rounded-3xl text-left text-white shadow-xl relative overflow-hidden">
-                <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-indigo-500/10 to-transparent pointer-events-none" />
-                <h3 className="text-xl md:text-2xl font-black text-white">
-                  Salutations, {userSession ? userSession.name : "Alex Patel"}!
-                </h3>
-                <p className="text-xs text-indigo-200 mt-1.5 leading-relaxed max-w-xl font-sans">
-                  Welcome to your integrated birthday circle and wishlist scheduler workspace. We are monitoring <span className="font-bold text-white">{totalBuddiesCount} buddies</span>, with <span className="font-bold text-white">{claimedWishesCount} reserved target gifts</span>. Customize widgets below or trigger the AI assistant to fetch fresh suggestions.
-                </p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button 
-                    onClick={() => { setActiveSection("registry"); setSelectedFriendId("taylor"); }}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-extrabold px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer"
-                  >
-                    View Nearest List
-                  </button>
-                  <button 
-                    onClick={() => setActiveSection("ai-lab")}
-                    className="bg-white/10 hover:bg-white/20 text-indigo-100 text-[11px] font-extrabold px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer"
-                  >
-                    Launch AI Suggestions Lab
-                  </button>
-                </div>
-              </div>
 
               {/* ==================== UNIVERSAL SEARCH & DISCOVERY CENTER ==================== */}
               <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs text-left space-y-4" id="dashboard-discovery-deck">
@@ -2633,192 +2610,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* ==================== 📅 30-DAY UPCOMING BIRTHDAYS FEED & GIFT SUGGESTIONS ==================== */}
-              <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-xs text-left space-y-5" id="dashboard-upcoming-feed-deck">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-                  <div>
-                    <h4 className="font-black text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                      <Sparkles className="w-4.5 h-4.5 text-indigo-600 animate-pulse" /> 
-                      <span>30-Day Birthdays Feed &amp; Gift Suggestions</span>
-                    </h4>
-                    <p className="text-xs text-slate-500 font-sans mt-0.5">
-                      Monitor upcoming landmark days due in the next 30 days, dispatch quick WhatsApp/Snapchat greetings, and trigger gift orders.
-                    </p>
-                  </div>
-                  <div className="bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100 flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse block"></span>
-                    <span className="text-[10px] font-black text-indigo-900 font-mono uppercase tracking-wide">
-                      {friends.filter(f => f.id !== "alex" && calculateDaysRemaining(f.birthday) <= 30).length} Celebrants Match
-                    </span>
-                  </div>
-                </div>
-
-                {/* Grid content inside upcoming feed */}
-                {friends.filter(f => f.id !== "alex" && calculateDaysRemaining(f.birthday) <= 30).length === 0 ? (
-                  <div className="py-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                    <span className="text-3xl">🎉</span>
-                    <p className="text-xs font-bold text-slate-600 mt-2">All Quiet on the Landmark Desk</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">There are no companion birthdays occurring in the next 30 days. Add more buddies to see them live here!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {friends
-                      .filter(f => f.id !== "alex" && calculateDaysRemaining(f.birthday) <= 30)
-                      .map(f => ({ ...f, daysLeft: calculateDaysRemaining(f.birthday) }))
-                      .sort((a, b) => a.daysLeft - b.daysLeft)
-                      .map(friend => {
-                        const snapHandle = friend.snapchat || "friend_snap";
-                        const phoneNo = friend.phone || "+233241234567";
-                        const shareMsg = `Happy Birthday, ${friend.name}! 🎉 Wishing you a spectacular year ahead! Let's celebrate. Check out your wishlist claim on BloomBirth.`;
-                        
-                        return (
-                          <div 
-                            key={friend.id}
-                            className="bg-slate-50/50 hover:bg-slate-50 border border-slate-150 rounded-2xl p-5 transition-all text-left space-y-4"
-                          >
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                              {/* Friend Profile and Countdown info */}
-                              <div className="flex items-center gap-3.5">
-                                <div className={`w-11 h-11 rounded-xl ${friend.avatar} text-white flex items-center justify-center font-black text-sm capitalize`}>
-                                  {friend.name.split(" ").map(n => n[0]).slice(0, 2).join("")}
-                                </div>
-                                <div>
-                                  <h5 className="font-extrabold text-sm text-slate-900">{friend.name}</h5>
-                                  <div className="flex items-center gap-2 text-[10px] text-slate-400 font-semibold mt-0.5">
-                                    <span className="bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded uppercase text-[9px]">{friend.relationship}</span>
-                                    <span>•</span>
-                                    <span>Birthday: {formatBirthdayDate(friend.birthday)} ({friend.birthday})</span>
-                                    <span>•</span>
-                                    <span>Turns {friend.age}</span>
-                                  </div>
-                                  {/* Real-time gift status badge */}
-                                  {(() => {
-                                    const friendGiftsCount = sentGifts.filter(g => g.friendId === friend.id).length;
-                                    if (friendGiftsCount > 0) {
-                                      return (
-                                        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                                          <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-600 font-black text-[9px] px-2 py-0.5 rounded-lg border border-rose-150 font-mono uppercase tracking-wide">
-                                            🎁 Boutique Locker: {friendGiftsCount} {friendGiftsCount === 1 ? 'gift' : 'gifts'} dispatched &amp; active
-                                          </span>
-                                        </div>
-                                      );
-                                    }
-                                    return null;
-                                  })()}
-                                </div>
-                              </div>
-
-                              {/* Alert status and Direct Social shares */}
-                              <div className="flex flex-wrap items-center gap-2">
-                                {/* Countdown Badge */}
-                                <div className="bg-rose-50 border border-rose-250 text-rose-600 px-3 py-1.5 rounded-xl text-xs font-extrabold">
-                                  🔔 In {friend.daysLeft} Days
-                                </div>
-
-                                {/* WhatsApp Share link */}
-                                <a
-                                  href={`https://wa.me/${phoneNo.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(shareMsg)}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[11px] font-bold flex items-center gap-1.5 shadow-md shadow-emerald-100 transition-all cursor-pointer active:scale-95"
-                                  title={`Send WhatsApp message greeting to ${friend.name}`}
-                                >
-                                  <Phone className="w-3.5 h-3.5" />
-                                  <span>WhatsApp Msg</span>
-                                </a>
-
-                                {/* Snapchat Copy & Deep link button */}
-                                <button
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(`Happy Birthday, ${friend.name}! 🎉 Wishing you the best year ahead! Check out your wishlist on BloomBirth.`);
-                                    triggerToast("Username copied! 👻", `Copied username: @${snapHandle} to your clipboard!`);
-                                    appendLog(`👻 Opened username link for friend: @${snapHandle}`);
-                                    window.open(`https://snapchat.com/add/${snapHandle}`, "_blank");
-                                  }}
-                                  className="px-3 py-1.5 bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-xl text-[11px] font-black flex items-center gap-1.5 shadow-md shadow-amber-100 transition-all cursor-pointer active:scale-95"
-                                  title={`Send username greeting to @${snapHandle}`}
-                                >
-                                  <span className="text-xs">👻</span>
-                                  <span>Snapchat</span>
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Dynamic Wishlist Gift Suggestion Row for this friend */}
-                            <div className="bg-white p-4.5 rounded-xl border border-slate-150 space-y-3">
-                              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                                <Gift className="w-3.5 h-3.5 text-indigo-550 text-indigo-500" />
-                                <span>🎁 Suggested Desires from Wishlist</span>
-                              </span>
-                              
-                              {friend.wishlist && friend.wishlist.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                  {friend.wishlist.map(wish => (
-                                    <div 
-                                      key={wish.id}
-                                      className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between"
-                                    >
-                                      <div>
-                                        <h6 className="font-bold text-xs text-slate-800 line-clamp-1">{wish.title}</h6>
-                                        <div className="flex items-center gap-2 mt-1">
-                                          <span className="text-xs font-black text-emerald-600">{wish.price}</span>
-                                          {wish.isClaimed && (
-                                            <span className="text-[9px] bg-indigo-50 text-indigo-650 font-extrabold px-1.5 py-0.5 rounded">
-                                              Reserved
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-
-                                      {/* Action button */}
-                                      <div className="pt-3 border-t mt-3 flex items-center justify-between gap-2 border-slate-100">
-                                        {wish.url && (
-                                          <a 
-                                            href={wish.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-[10px] text-slate-450 hover:text-indigo-600 transition font-semibold"
-                                          >
-                                            Store Ref
-                                          </a>
-                                        )}
-                                        
-                                        <button
-                                          onClick={() => {
-                                            setSelectedGiftItem({
-                                              friendId: friend.id,
-                                              wishId: wish.id,
-                                              title: wish.title,
-                                              price: wish.price,
-                                              friendName: friend.name
-                                            });
-                                            setShowSendGiftModal(true);
-                                          }}
-                                          className={`px-3 py-1.2 rounded-lg text-[10px] font-bold transition-all ml-auto ${
-                                            wish.isClaimed 
-                                              ? "bg-slate-100 hover:bg-slate-150 text-slate-605 text-slate-600" 
-                                              : "bg-indigo-650 bg-indigo-600 hover:bg-indigo-700 text-white"
-                                          }`}
-                                        >
-                                          {wish.isClaimed ? "Gifting Info 🎁" : "Send a Gift 🎁"}
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-400 italic">
-                                  No specific wishlist items loaded yet. Synced circles take ~12s to automatically publish mock items.
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                )}
-              </div>
-
               {/* Main split row layout */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" id="dashboard-desk-row">
                 
@@ -2953,34 +2744,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Live Activity Records Ledger */}
-                <div className="lg:col-span-3 bg-slate-900 rounded-3xl p-5 text-left border border-slate-800 flex flex-col justify-between" id="logs-overview">
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-bold text-xs text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                        <Activity className="w-3.5 h-3.5 text-indigo-400" /> Operational Log Feed
-                      </h4>
-                      <button 
-                        onClick={handleClearLogs}
-                        className="text-[9px] text-zinc-500 hover:text-white"
-                      >
-                        Clear
-                      </button>
-                    </div>
-
-                    <div className="space-y-2 font-mono text-[9.5px] text-indigo-300 max-h-[290px] overflow-y-auto bg-slate-950 p-3 rounded-2xl border border-slate-850">
-                      {logs.slice(0, 8).map((log, index) => (
-                        <div key={index} className="border-b border-slate-900 pb-1.5 last:border-0 leading-relaxed text-slate-300 break-words">
-                          {log}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <p className="text-[9px] text-slate-500 font-semibold text-center mt-3 leading-tight">
-                    Audit log auto-registers widget deployments and claim commitments made on local profiles.
-                  </p>
-                </div>
 
               </div>
 
@@ -3306,58 +3069,19 @@ export default function App() {
                   <Users className="w-3.5 h-3.5" />
                   <span>Buddies List</span>
                 </button>
+<button
+  type="button"
+  onClick={() => setRegistrySubTab("connect")}
+  className={`flex-1 min-w-[110px] py-2 text-xs font-black rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 relative ${
+    registrySubTab === "connect"
+      ? "bg-white text-indigo-950 shadow-md shadow-slate-350/50"
+      : "text-slate-550 hover:text-indigo-900"
+  }`}
+>
+  <UserPlus className="w-3.5 h-3.5 text-indigo-650" />
+  <span>Connect &amp; Import</span>
+</button>
 
-                <button
-                  type="button"
-                  onClick={() => setRegistrySubTab("wishlist")}
-                  className={`flex-1 min-w-[110px] py-2 text-xs font-black rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    registrySubTab === "wishlist"
-                      ? "bg-white text-slate-900 shadow-md shadow-slate-350/50"
-                      : "text-slate-550 hover:text-slate-900"
-                  }`}
-                >
-                  <Gift className="w-3.5 h-3.5 text-rose-500" />
-                  <span>My Wishlist</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setRegistrySubTab("widgets")}
-                  className={`flex-1 min-w-[110px] py-2 text-xs font-black rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    registrySubTab === "widgets"
-                      ? "bg-white text-slate-900 shadow-md shadow-slate-350/50"
-                      : "text-slate-550 hover:text-slate-900"
-                  }`}
-                >
-                  <Smartphone className="w-3.5 h-3.5 text-cyan-500" />
-                  <span>Widgets Studio</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setRegistrySubTab("trophies")}
-                  className={`flex-1 min-w-[110px] py-2 text-xs font-black rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    registrySubTab === "trophies"
-                      ? "bg-white text-slate-900 shadow-md shadow-slate-350/50"
-                      : "text-slate-550 hover:text-slate-550"
-                  }`}
-                >
-                  <Award className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Trophies &amp; Logs</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setRegistrySubTab("connect")}
-                  className={`flex-1 min-w-[110px] py-2 text-xs font-black rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 relative ${
-                    registrySubTab === "connect"
-                      ? "bg-white text-indigo-950 shadow-md shadow-slate-350/50"
-                      : "text-slate-550 hover:text-indigo-900"
-                  }`}
-                >
-                  <UserPlus className="w-3.5 h-3.5 text-indigo-650" />
-                  <span>Connect &amp; Import</span>
-                </button>
               </div>
 
               {/* Dynamic sections based on selected subtab */}
@@ -3700,65 +3424,7 @@ export default function App() {
                       )}
                     </div>
 
-                    {/* Integrated Live Simulations Desk Card (Simulating friend posting wishlist!) */}
-                    <div className="bg-slate-900 text-slate-100 rounded-[2rem] p-5 border border-slate-800 space-y-3">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-black text-indigo-300 uppercase tracking-wider flex items-center gap-1">
-                          <Sliders className="w-3.5 h-3.5 text-indigo-400 animate-spin" /> Live Scheduler Simulation Desk
-                        </span>
-                        <span className="text-[9px] bg-slate-800 text-emerald-400 px-1.5 py-0.5 rounded font-mono font-bold uppercase">Streaming</span>
-                      </div>
-                      <p className="text-[10.5px] text-slate-400 leading-normal">
-                        BloomBirth live triggers let you test getting a notification when they post their birthday wishlist. Drag-and-drop or select profiles:
-                      </p>
-                      
-                      <div className="space-y-1.5 max-h-[190px] overflow-y-auto pr-1">
-                        {MOCK_EXTERNAL_PROFILES.map(p => {
-                          const isConnected = friends.some(f => f.id === p.id);
-                          const isPosted = postedLists[p.id];
-                          const timer = pendingPostingTimers[p.id];
 
-                          return (
-                            <div key={p.id} className="p-2 rounded-xl bg-slate-950 border border-slate-850 flex justify-between items-center text-[10.5px] gap-2">
-                              <span className="text-zinc-200 font-bold truncate">
-                                {p.name}
-                              </span>
-
-                              <div className="shrink-0 flex gap-1.5 items-center">
-                                {!isConnected ? (
-                                  <span className="text-[8.5px] text-slate-500 font-bold bg-slate-900 px-1.5 py-0.5 rounded">Offline</span>
-                                ) : isPosted ? (
-                                  <span className="text-[8.5px] text-emerald-400 font-bold bg-emerald-950/40 border border-emerald-900 px-1.5 py-0.5 rounded">Posted</span>
-                                ) : timer ? (
-                                  <button
-                                    onClick={() => {
-                                      // Cancel timer and post now
-                                      setPendingPostingTimers(prev => {
-                                        const next = { ...prev };
-                                        delete next[p.id];
-                                        return next;
-                                      });
-                                      handlePostWishlistAutomatically(p.id);
-                                    }}
-                                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-[8px] px-2 py-0.5 rounded animate-pulse"
-                                    title="Force list post instantly to trigger notification"
-                                  >
-                                    Publish ({timer}s) 📣
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() => handlePostWishlistAutomatically(p.id)}
-                                    className="bg-indigo-600 hover:bg-indigo-550 text-white font-extrabold text-[8.5px] px-2 py-0.5 rounded"
-                                  >
-                                    Post Wishlist 📣
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
                   </motion.div>
                 )}
 
