@@ -1711,7 +1711,7 @@ export default function App() {
               <Users className="w-4 h-4" />
               <span>Buddies</span>
               <span className="ml-auto bg-slate-800 text-[10px] px-2 py-0.5 rounded text-indigo-300 font-mono">
-                {friends.length}
+                {friends.filter(f => f.id !== "alex" && f.connectedBack === false).length || ""}
               </span>
             </button>
 
@@ -1795,6 +1795,27 @@ export default function App() {
               <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse" />
               <span>Next Birthday: {nextTarget.name} ({nextTargetDays} days left)</span>
             </div>
+            {/* Premium Badge */}
+<div
+  onClick={() => setActiveSection("upgrade")}
+  className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black cursor-pointer border transition-all ${
+    accountType === "Business"
+      ? "bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+      : accountType === "Pro"
+      ? "bg-indigo-50 border-indigo-300 text-indigo-700 hover:bg-indigo-100"
+      : "bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200"
+  }`}
+  title="Manage your plan"
+>
+  <Sparkles className="w-3.5 h-3.5" />
+  <span>{accountType === "Business" ? "Business Elite" : accountType === "Pro" ? "Pro VIP" : "Free Plan"}</span>
+  <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
+    accountType === "Free" ? "bg-slate-200 text-slate-500" : "bg-white/60 text-current"
+  }`}>
+    {accountType !== "Free" ? billingCycle === "annual" ? "Annual" : "Monthly" : "Upgrade ↑"}
+  </span>
+</div>
+
 
             {/* Real-time Notification Bell Widget */}
             <button
@@ -3056,6 +3077,42 @@ export default function App() {
             <div className="space-y-6 text-left" id="view-registry-hull">
 
               {/* Universal Buddies Navigation Bar */}
+              {/* Friend Requests Card */}
+{friends.filter(f => f.id !== "alex" && f.connectedBack === false).length > 0 && (
+  <div className="bg-white rounded-2xl border border-indigo-200 p-4 shadow-xs">
+    <h4 className="font-black text-sm text-slate-900 mb-3 flex items-center gap-2">
+      <UserPlus className="w-4 h-4 text-indigo-600" />
+      Friend Requests ({friends.filter(f => f.id !== "alex" && f.connectedBack === false).length})
+    </h4>
+    <div className="space-y-2">
+      {friends.filter(f => f.id !== "alex" && f.connectedBack === false).map(f => (
+        <div key={f.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="flex items-center gap-2">
+            <span className={`w-8 h-8 rounded-xl ${f.avatar} text-white flex items-center justify-center font-bold text-xs`}>
+              {f.name.split(" ").map(n => n[0]).join("")}
+            </span>
+            <span className="text-xs font-bold text-slate-800">{f.name}</span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setFriends(prev => prev.map(p => p.id === f.id ? {...p, connectedBack: true} : p))}
+              className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg cursor-pointer"
+            >
+              Accept
+            </button>
+            <button
+              onClick={() => setFriends(prev => prev.filter(p => p.id !== f.id))}
+              className="px-3 py-1 bg-slate-200 hover:bg-rose-100 text-slate-700 hover:text-rose-600 text-xs font-bold rounded-lg cursor-pointer"
+            >
+              Decline
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
               <div className="flex flex-wrap bg-slate-200/80 p-1.5 rounded-2xl w-full border border-slate-300/40 shadow-xs gap-1" id="registry-segmented-tabs">
                 <button
                   type="button"
@@ -6505,11 +6562,15 @@ export default function App() {
           }`}
           title="Buddies Registry"
         >
-          <Users className="w-4.5 h-4.5 mb-0.5" />
+                    <Users className="w-4.5 h-4.5 mb-0.5" />
           <span className="text-[9px] font-bold tracking-tight">Buddies</span>
-          <span className="absolute top-1 right-3.5 bg-slate-850 text-[8px] px-1 rounded text-indigo-300 font-mono font-bold scale-75 border border-slate-700/60">
-            {friends.length}
-          </span>
+          {friends.filter(f => f.id !== "alex" && f.connectedBack === false).length > 0 && (
+            <span className="absolute top-1 right-3.5 bg-rose-600 text-[8px] px-1 rounded text-white font-mono font-bold scale-75 border border-slate-700/60">
+              {friends.filter(f => f.id !== "alex" && f.connectedBack === false).length}
+            </span>
+          )}
+
+
         </button>
 
         <button
